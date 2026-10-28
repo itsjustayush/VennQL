@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VennQL Studio | Interactive API Playground</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
   <style>
     :root {
       --bg-dark: #0a0c10;
@@ -25,7 +28,11 @@
       --font-mono: 'Fira Code', monospace;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       background: var(--bg-dark);
@@ -116,9 +123,20 @@
     }
 
     @keyframes pulse {
-      0% { transform: scale(0.95); opacity: 0.8; }
-      50% { transform: scale(1.15); opacity: 1; }
-      100% { transform: scale(0.95); opacity: 0.8; }
+      0% {
+        transform: scale(0.95);
+        opacity: 0.8;
+      }
+
+      50% {
+        transform: scale(1.15);
+        opacity: 1;
+      }
+
+      100% {
+        transform: scale(0.95);
+        opacity: 0.8;
+      }
     }
 
     .btn-ping {
@@ -197,7 +215,8 @@
       gap: 0.35rem;
     }
 
-    .proc-item:hover, .proc-item.active {
+    .proc-item:hover,
+    .proc-item.active {
       border-color: var(--accent-cyan);
       background: rgba(0, 210, 255, 0.05);
       transform: translateX(2px);
@@ -223,9 +242,23 @@
       border-radius: 4px;
     }
 
-    .badge-query { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.3); }
-    .badge-mutate { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.3); }
-    .badge-stream { background: rgba(157, 78, 221, 0.15); color: var(--accent-purple); border: 1px solid rgba(157, 78, 221, 0.3); }
+    .badge-query {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-green);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .badge-mutate {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--accent-amber);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .badge-stream {
+      background: rgba(157, 78, 221, 0.15);
+      color: var(--accent-purple);
+      border: 1px solid rgba(157, 78, 221, 0.3);
+    }
 
     .proc-id {
       font-size: 0.75rem;
@@ -425,6 +458,7 @@
     }
   </style>
 </head>
+
 <body>
   <header>
     <div class="brand">
@@ -466,7 +500,8 @@
       <div class="builder-body">
         <div class="form-group">
           <label class="form-label">Procedure Target</label>
-          <div style="font-family:var(--font-mono); font-weight:600; color:var(--accent-cyan); font-size:1rem;" id="selected-proc-display">
+          <div style="font-family:var(--font-mono); font-weight:600; color:var(--accent-cyan); font-size:1rem;"
+            id="selected-proc-display">
             #4: books (Bookstore Catalog)
           </div>
         </div>
@@ -785,4 +820,5 @@ console.log('Result:', result);
     initWebSocket();
   </script>
 </body>
+
 </html>
