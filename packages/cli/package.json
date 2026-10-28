@@ -6,6 +6,7 @@
     "vennql": "./bin/vennql.js"
   },
   "scripts": {
+    "build": "echo 'CLI ready'",
     "test": "node bin/vennql.js --version"
   },
   "keywords": [

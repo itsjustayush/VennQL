@@ -1,6 +1,9 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "outputDirectory": "web",
+  "buildCommand": "echo 'VennQL static web assets ready'",
+  "installCommand": "echo 'No installation needed for static web'",
   "cleanUrls": true,
   "trailingSlash": false,
   "headers": [

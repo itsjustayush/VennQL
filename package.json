@@ -7,7 +7,8 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run --workspaces build",
+    "build": "echo 'VennQL static web assets ready'",
+    "build:packages": "npm run --workspaces --if-present build",
     "test": "npm run --workspaces test"
   },
   "keywords": [

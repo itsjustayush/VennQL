@@ -3,8 +3,11 @@ import json
 from vennql import Client, Colors
 
 def main():
-    port = sys.argv[1] if len(sys.argv) > 1 else "8081"
-    url = f"ws://127.0.0.1:{port}"
+    target = sys.argv[1] if len(sys.argv) > 1 else "8080"
+    if target.startswith("ws://") or target.startswith("wss://"):
+        url = target
+    else:
+        url = f"ws://127.0.0.1:{target}"
     c = Colors
 
     print(f"\n  {c.CYAN}{c.BOLD}⚡ VennQL Python Client Test Suite{c.RESET}")

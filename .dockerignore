@@ -1,0 +1,12 @@
+.git
+.github
+node_modules
+target
+crates
+packages
+web
+*.log
+dist
+build
+*.egg-info
+__pycache__

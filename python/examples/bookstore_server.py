@@ -41,4 +41,7 @@ def create_book(title: str, author: str, price: float = 9.99):
     return new_book
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=8081)
+    import os
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", 8080))
+    app.run(host=host, port=port)
