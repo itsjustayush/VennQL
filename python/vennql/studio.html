@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VennQL Studio | Interactive API Playground</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0a0c10;
+      --bg-card: #12161f;
+      --bg-surface: #181f2c;
+      --border: #232b3b;
+      --border-focus: #00d2ff;
+      --accent-cyan: #00d2ff;
+      --accent-purple: #9d4edd;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'Fira Code', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-ui);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Navigation */
+    header {
+      background: rgba(18, 22, 31, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-badge {
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      color: #000;
+      font-weight: 800;
+      font-size: 1.1rem;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+    }
+
+    .brand-title {
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, #fff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--accent-cyan);
+      background: rgba(0, 210, 255, 0.1);
+      padding: 2px 8px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 210, 255, 0.2);
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      background: var(--bg-surface);
+      padding: 0.35rem 0.85rem;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      box-shadow: 0 0 8px var(--accent-green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(0.95);
+        opacity: 0.8;
+      }
+
+      50% {
+        transform: scale(1.15);
+        opacity: 1;
+      }
+
+      100% {
+        transform: scale(0.95);
+        opacity: 0.8;
+      }
+    }
+
+    .btn-ping {
+      background: rgba(0, 210, 255, 0.12);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(0, 210, 255, 0.3);
+      padding: 0.35rem 0.85rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-ping:hover {
+      background: var(--accent-cyan);
+      color: #000;
+      box-shadow: 0 0 12px rgba(0, 210, 255, 0.4);
+    }
+
+    /* Main Grid Layout */
+    .studio-container {
+      display: grid;
+      grid-template-columns: 280px 1fr 1fr;
+      flex: 1;
+      height: calc(100vh - 58px);
+      overflow: hidden;
+    }
+
+    /* Panel Styles */
+    .panel {
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-card);
+      overflow: hidden;
+    }
+
+    .panel:last-child {
+      border-right: none;
+    }
+
+    .panel-header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(18, 22, 31, 0.6);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Procedure Explorer */
+    .procedure-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .proc-item {
+      padding: 0.75rem;
+      border-radius: 8px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .proc-item:hover,
+    .proc-item.active {
+      border-color: var(--accent-cyan);
+      background: rgba(0, 210, 255, 0.05);
+      transform: translateX(2px);
+    }
+
+    .proc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .proc-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text-main);
+    }
+
+    .proc-badge {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .badge-query {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-green);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .badge-mutate {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--accent-amber);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .badge-stream {
+      background: rgba(157, 78, 221, 0.15);
+      color: var(--accent-purple);
+      border: 1px solid rgba(157, 78, 221, 0.3);
+    }
+
+    .proc-id {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    /* Query Builder Panel */
+    .builder-body {
+      flex: 1;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      overflow-y: auto;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .field-picker {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .checkbox-row input {
+      accent-color: var(--accent-cyan);
+      cursor: pointer;
+    }
+
+    .code-editor {
+      width: 100%;
+      height: 130px;
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      color: var(--accent-cyan);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .code-editor:focus {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 0 1px var(--accent-cyan);
+    }
+
+    .run-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--border);
+      background: rgba(18, 22, 31, 0.5);
+    }
+
+    .btn-run {
+      background: linear-gradient(135deg, var(--accent-cyan), #0099ff);
+      color: #000;
+      border: none;
+      padding: 0.6rem 1.5rem;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(0, 210, 255, 0.3);
+    }
+
+    .btn-run:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(0, 210, 255, 0.5);
+    }
+
+    /* Response Inspector Panel */
+    .inspector-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .metrics-bar {
+      padding: 0.6rem 1rem;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 1.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+
+    .metric-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .metric-value {
+      font-weight: 600;
+      color: var(--accent-green);
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: rgba(18, 22, 31, 0.5);
+    }
+
+    .tab-btn {
+      padding: 0.6rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      color: var(--accent-cyan);
+      border-bottom-color: var(--accent-cyan);
+    }
+
+    .tab-content {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    pre {
+      color: #e2e8f0;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* Frame Header Inspector */
+    .frame-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .frame-cell {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      padding: 0.5rem;
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    .frame-cell-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .frame-cell-val {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      margin-top: 2px;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo-badge">V</div>
+      <div>
+        <div style="display:flex; align-items:center; gap:0.5rem;">
+          <span class="brand-title">VennQL Studio</span>
+          <span class="brand-subtitle">v1.0 Zero-Copy</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-controls">
+      <div class="status-indicator">
+        <span class="status-dot" id="ws-status-dot"></span>
+        <span id="ws-status-text">Connected: ws://127.0.0.1:8080</span>
+      </div>
+      <button class="btn-ping" id="btn-ping" onclick="pingServer()">⚡ Ping (Heartbeat)</button>
+    </div>
+  </header>
+
+  <div class="studio-container">
+    <!-- Panel 1: Procedures Menu -->
+    <div class="panel">
+      <div class="panel-header">
+        <span>Procedures Menu</span>
+        <span style="font-size:0.7rem; color:var(--accent-cyan);">5 Active</span>
+      </div>
+      <div class="procedure-list" id="proc-list">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Panel 2: Query Builder -->
+    <div class="panel">
+      <div class="panel-header">
+        <span>Query Builder & Field Selector</span>
+        <span id="active-op-badge" class="proc-badge badge-query">Query</span>
+      </div>
+      <div class="builder-body">
+        <div class="form-group">
+          <label class="form-label">Procedure Target</label>
+          <div style="font-family:var(--font-mono); font-weight:600; color:var(--accent-cyan); font-size:1rem;"
+            id="selected-proc-display">
+            #4: books (Bookstore Catalog)
+          </div>
+        </div>
+
+        <div class="form-group" id="fields-container">
+          <label class="form-label">Client Field Projection (Bitmask Selection)</label>
+          <div class="field-picker" id="fields-picker">
+            <!-- Checkboxes injected by JS -->
+          </div>
+          <span style="font-size:0.75rem; color:var(--text-muted);">
+            ⚡ VennQL projects requested fields in 0.1ns using CPU bitmasks without recursive GraphQL AST parsing!
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Arguments / Payload (JSON or Raw Data)</label>
+          <textarea id="payload-input" class="code-editor" placeholder="Enter arguments or payload..."></textarea>
+        </div>
+      </div>
+      <div class="run-bar">
+        <span style="font-size:0.75rem; color:var(--text-muted);" id="tx-hint">TxID: auto</span>
+        <button class="btn-run" id="btn-run" onclick="executeCurrentProcedure()">
+          ▶ Execute Query
+        </button>
+      </div>
+    </div>
+
+    <!-- Panel 3: Response Inspector -->
+    <div class="panel">
+      <div class="panel-header">
+        <span>Response Inspector</span>
+        <span id="resp-status" style="color:var(--accent-green); font-size:0.75rem; font-weight:700;">READY</span>
+      </div>
+      <div class="metrics-bar">
+        <div class="metric-item">
+          <span>Latency:</span>
+          <span class="metric-value" id="metric-latency">0.00 ms</span>
+        </div>
+        <div class="metric-item">
+          <span>Wire Bytes:</span>
+          <span class="metric-value" id="metric-bytes">0 B</span>
+        </div>
+        <div class="metric-item">
+          <span>Edge Cache Tag:</span>
+          <span class="metric-value" id="metric-cache">vq_0004_...</span>
+        </div>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('json')">JSON View</button>
+        <button class="tab-btn" onclick="switchTab('frame')">16B Wire Header</button>
+        <button class="tab-btn" onclick="switchTab('code')">Client Code (TS)</button>
+      </div>
+      <div class="tab-content" id="tab-content">
+        <pre id="json-output">// Select a procedure and click "Execute Query" to inspect live response</pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const PROCEDURES = [
+      { id: 4, name: 'books', type: 'query', desc: 'Bookstore catalog with field projection', fields: ['id', 'title', 'author', 'price', 'rating'], defaultPayload: '{"limit": 5}' },
+      { id: 1, name: 'health', type: 'query', desc: 'Nanosecond liveness & engine status', fields: ['status', 'engine', 'v'], defaultPayload: '' },
+      { id: 10, name: 'getUser', type: 'query', desc: 'Cached profile entity lookup', fields: ['id', 'name', 'role', 'cached'], defaultPayload: 'usr_architect_77' },
+      { id: 3, name: 'sum', type: 'query', desc: 'Packed 32-bit zero-copy binary sum', fields: [], defaultPayload: '[100, 250, 450, 200]' },
+      { id: 2, name: 'echo', type: 'mutate', desc: 'Zero-allocation payload loopback', fields: [], defaultPayload: 'Hello VennQL!' }
+    ];
+
+    let currentProc = PROCEDURES[0];
+    let ws = null;
+    let pendingTx = new Map();
+    let txCounter = 1;
+
+    function initWebSocket() {
+      const loc = window.location;
+      const wsUrl = (loc.protocol === 'https:' ? 'wss://' : 'ws://') + loc.host;
+      ws = new WebSocket(wsUrl);
+      ws.binaryType = 'arraybuffer';
+
+      ws.onopen = () => {
+        document.getElementById('ws-status-dot').style.background = 'var(--accent-green)';
+        document.getElementById('ws-status-text').textContent = 'Connected: ' + wsUrl;
+      };
+
+      ws.onclose = () => {
+        document.getElementById('ws-status-dot').style.background = 'var(--accent-rose)';
+        document.getElementById('ws-status-text').textContent = 'Disconnected (Reconnecting...)';
+        setTimeout(initWebSocket, 2000);
+      };
+
+      ws.onmessage = (event) => {
+        if (event.data instanceof ArrayBuffer) {
+          handleBinaryFrame(event.data);
+        }
+      };
+    }
+
+    function renderProcedures() {
+      const list = document.getElementById('proc-list');
+      list.innerHTML = '';
+      PROCEDURES.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'proc-item' + (p.id === currentProc.id ? ' active' : '');
+        item.onclick = () => selectProcedure(p);
+
+        const badgeClass = p.type === 'query' ? 'badge-query' : (p.type === 'mutate' ? 'badge-mutate' : 'badge-stream');
+        item.innerHTML = `
+          <div class="proc-header">
+            <span class="proc-name">${p.name}</span>
+            <span class="proc-badge ${badgeClass}">${p.type.toUpperCase()}</span>
+          </div>
+          <div class="proc-id">ID: #${p.id} &bull; ${p.desc}</div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    function selectProcedure(p) {
+      currentProc = p;
+      renderProcedures();
+      document.getElementById('selected-proc-display').textContent = `#${p.id}: ${p.name} (${p.desc})`;
+      document.getElementById('payload-input').value = p.defaultPayload;
+
+      const badge = document.getElementById('active-op-badge');
+      badge.textContent = p.type.toUpperCase();
+      badge.className = 'proc-badge ' + (p.type === 'query' ? 'badge-query' : 'badge-mutate');
+
+      const fieldsPicker = document.getElementById('fields-picker');
+      const fieldsContainer = document.getElementById('fields-container');
+      if (p.fields && p.fields.length > 0) {
+        fieldsContainer.style.display = 'flex';
+        fieldsPicker.innerHTML = p.fields.map((f, i) => `
+          <label class="checkbox-row">
+            <input type="checkbox" id="field-${f}" value="${f}" checked>
+            <span style="font-family:var(--font-mono); color:var(--text-main);">${f}</span>
+          </label>
+        `).join('');
+      } else {
+        fieldsContainer.style.display = 'none';
+      }
+    }
+
+    function encodeFrame(opCode, procId, txId, payloadBytes) {
+      const headerLen = 16;
+      const totalLen = headerLen + payloadBytes.byteLength;
+      const buffer = new ArrayBuffer(totalLen);
+      const view = new DataView(buffer);
+
+      view.setUint8(0, 0x56); // MAGIC
+      view.setUint8(1, 0x01); // VERSION
+      view.setUint8(2, opCode);
+      view.setUint8(3, 0x02); // FLAG_CACHEABLE
+      view.setUint32(4, txId, false);
+      view.setUint16(8, procId, false);
+      view.setUint16(10, 0, false); // VTABLE OFFSET
+      view.setUint32(12, payloadBytes.byteLength, false);
+
+      const target = new Uint8Array(buffer, headerLen);
+      target.set(payloadBytes);
+      return buffer;
+    }
+
+    function parseFrame(buffer) {
+      const view = new DataView(buffer);
+      return {
+        magic: view.getUint8(0),
+        version: view.getUint8(1),
+        opCode: view.getUint8(2),
+        flags: view.getUint8(3),
+        txId: view.getUint32(4, false),
+        procId: view.getUint16(8, false),
+        vtableOffset: view.getUint16(10, false),
+        payloadLen: view.getUint32(12, false),
+        payload: new Uint8Array(buffer, 16, view.getUint32(12, false))
+      };
+    }
+
+    let lastFrameData = null;
+
+    function handleBinaryFrame(buffer) {
+      const frame = parseFrame(buffer);
+      const tx = pendingTx.get(frame.txId);
+      const latency = tx ? (performance.now() - tx.startTime) : 0;
+      if (tx) pendingTx.delete(frame.txId);
+
+      document.getElementById('metric-latency').textContent = latency.toFixed(3) + ' ms';
+      document.getElementById('metric-bytes').textContent = buffer.byteLength + ' B';
+      document.getElementById('metric-cache').textContent = `vq_${frame.procId.toString(16).padStart(4, '0')}_${(frame.payloadLen * 7919).toString(16)}`;
+
+      let decodedStr = '';
+      try {
+        decodedStr = new TextDecoder().decode(frame.payload);
+      } catch (e) {
+        decodedStr = '<raw binary bytes>';
+      }
+
+      let parsedJson = null;
+      try {
+        parsedJson = JSON.parse(decodedStr);
+      } catch (e) {
+        parsedJson = decodedStr;
+      }
+
+      lastFrameData = { frame, raw: buffer, json: parsedJson, latency };
+      renderCurrentTab();
+    }
+
+    function executeCurrentProcedure() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert('WebSocket is not connected');
+        return;
+      }
+
+      const txId = txCounter++;
+      const opCode = currentProc.type === 'query' ? 0x01 : 0x02;
+
+      let payloadBytes;
+      const rawInput = document.getElementById('payload-input').value.trim();
+
+      // If procedure is books, attach selected field names into payload if JSON
+      if (currentProc.id === 4 && currentProc.fields) {
+        const selected = currentProc.fields.filter(f => {
+          const el = document.getElementById('field-' + f);
+          return el && el.checked;
+        });
+        const queryObj = { select: selected };
+        payloadBytes = new TextEncoder().encode(JSON.stringify(queryObj));
+      } else if (currentProc.id === 3) {
+        // Binary sum packed numbers
+        try {
+          const arr = JSON.parse(rawInput);
+          const buf = new ArrayBuffer(arr.length * 4);
+          const v = new DataView(buf);
+          arr.forEach((num, idx) => v.setUint32(idx * 4, num, false));
+          payloadBytes = new Uint8Array(buf);
+        } catch (e) {
+          payloadBytes = new TextEncoder().encode(rawInput);
+        }
+      } else {
+        payloadBytes = new TextEncoder().encode(rawInput);
+      }
+
+      const frameBuffer = encodeFrame(opCode, currentProc.id, txId, payloadBytes);
+      pendingTx.set(txId, { startTime: performance.now(), proc: currentProc });
+
+      ws.send(frameBuffer);
+      document.getElementById('resp-status').textContent = 'AWAITING RESPONSE...';
+    }
+
+    function pingServer() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      const txId = txCounter++;
+      const frameBuffer = encodeFrame(0x04, 0, txId, new Uint8Array(0)); // Ping OpCode 0x04
+      const start = performance.now();
+      pendingTx.set(txId, {
+        startTime: start,
+        proc: { name: 'Ping' }
+      });
+      ws.send(frameBuffer);
+    }
+
+    let activeTab = 'json';
+    function switchTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      renderCurrentTab();
+    }
+
+    function renderCurrentTab() {
+      const container = document.getElementById('tab-content');
+      if (!lastFrameData) {
+        container.innerHTML = '<pre>// Select a procedure and click "Execute Query"</pre>';
+        return;
+      }
+
+      document.getElementById('resp-status').textContent = '200 OK (SUCCESS)';
+
+      if (activeTab === 'json') {
+        const jsonFormatted = typeof lastFrameData.json === 'object' ? JSON.stringify(lastFrameData.json, null, 2) : lastFrameData.json;
+        container.innerHTML = `<pre>${jsonFormatted}</pre>`;
+      } else if (activeTab === 'frame') {
+        const f = lastFrameData.frame;
+        container.innerHTML = `
+          <div class="frame-grid">
+            <div class="frame-cell"><div class="frame-cell-label">Magic Byte</div><div class="frame-cell-val">0x${f.magic.toString(16)} (V)</div></div>
+            <div class="frame-cell"><div class="frame-cell-label">Version</div><div class="frame-cell-val">v${f.version}</div></div>
+            <div class="frame-cell"><div class="frame-cell-label">OpCode</div><div class="frame-cell-val">0x0${f.opCode}</div></div>
+            <div class="frame-cell"><div class="frame-cell-label">Flags</div><div class="frame-cell-val">0x${f.flags.toString(16)}</div></div>
+            <div class="frame-cell"><div class="frame-cell-label">Transaction ID</div><div class="frame-cell-val">#${f.txId}</div></div>
+            <div class="frame-cell"><div class="frame-cell-label">Procedure ID</div><div class="frame-cell-val">#${f.procId}</div></div>
+            <div class="frame-cell"><div class="frame-cell-label">VTable Offset</div><div class="frame-cell-val">${f.vtableOffset}</div></div>
+            <div class="frame-cell"><div class="frame-cell-label">Payload Size</div><div class="frame-cell-val">${f.payloadLen} B</div></div>
+          </div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.5rem;">Raw Payload Bytes (Hex Dump):</div>
+          <pre>${Array.from(f.payload.slice(0, 64)).map(b => b.toString(16).padStart(2, '0')).join(' ')} ${f.payload.length > 64 ? '...' : ''}</pre>
+        `;
+      } else if (activeTab === 'code') {
+        container.innerHTML = `
+          <pre style="color:var(--accent-cyan);">
+import { VennClient } from '@vennql/client';
+
+const client = new VennClient();
+await client.connect('ws://127.0.0.1:8080');
+
+// Execute procedure #${currentProc.id} (${currentProc.name})
+const result = await client.query(${currentProc.id}, ${document.getElementById('payload-input').value.trim() || 'null'});
+console.log('Result:', result);
+          </pre>
+        `;
+      }
+    }
+
+    // Initialize
+    renderProcedures();
+    selectProcedure(PROCEDURES[0]);
+    initWebSocket();
+  </script>
+</body>
+
+</html>

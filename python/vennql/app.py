@@ -200,9 +200,13 @@ class VennApp:
 
         path = request.path
         if path == "/" or path == "/studio":
-            studio_path = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), "..", "..", "crates", "vennql-server", "src", "studio.html")
-            )
+            pkg_studio = os.path.join(os.path.dirname(__file__), "studio.html")
+            if os.path.exists(pkg_studio):
+                studio_path = pkg_studio
+            else:
+                studio_path = os.path.abspath(
+                    os.path.join(os.path.dirname(__file__), "..", "..", "crates", "vennql-server", "src", "studio.html")
+                )
             if os.path.exists(studio_path):
                 with open(studio_path, "r", encoding="utf-8") as f:
                     html_content = f.read()
