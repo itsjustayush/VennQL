@@ -9,7 +9,7 @@
 
 Modern web development is trapped in compromises across API paradigms:
 - **REST** is simple and CDN-cacheable, but suffers from rigid resource endpoints, string parsing overhead, and heavy over-fetching.
-- **GraphQL** empowers frontends with custom data shapes, but sacrifices native CDN caching, imposes heavy JSON text parsing, and triggers severe backend $N+1$ relational loop explosions.
+- **GraphQL** empowers frontends with custom data shapes, but sacrifices native CDN caching, imposes heavy JSON text parsing, and triggers severe backend N+1 relational loop explosions.
 - **gRPC** delivers compact binary efficiency over internal microservices, but breaks inside browser runtimes due to HTTP/2 trailing header constraints, requiring bulky translation proxies.
 
 **VennQL** synthesizes the best aspects of all three while systematically eliminating their bottlenecks:
@@ -20,13 +20,11 @@ Modern web development is trapped in compromises across API paradigms:
 | **Parsing Cost** | String deserialization | Recursive AST parse | Schema deserialization | **Zero Heap Allocations (`&[u8]`)** |
 | **Browser Support**| 100% Native | 100% Native | Requires Envoy Proxy | **100% Native (WebSocket / WebTransport)** |
 | **CDN Cacheability**| Native via URL path | Impractical (POST) | None | **O(1) Deterministic Cache Tag (`twox-hash`)** |
-| **Dispatch Speed** | $O(N)$ Path RegEx | Dynamic Resolver Map | Generated Stubs | **$O(1)$ Direct Procedure ID Lookup** |
+| **Dispatch Speed** | O(N) Path RegEx | Dynamic Resolver Map | Generated Stubs | **O(1) Direct Procedure ID Lookup** |
 
 ---
 
 ## 🏗️ Repository Architecture
-
-VennQL is built as a high-performance polyglot monorepo:
 
 ```text
 VennQL/

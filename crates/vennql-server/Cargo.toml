@@ -1,0 +1,21 @@
+[package]
+name = "vennql-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Production-grade binary server engine for VennQL with WebSocket and stream multiplexing"
+
+[dependencies]
+vennql-core = { path = "../vennql-core" }
+vennql-router = { path = "../vennql-router" }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "net", "io-util"] }
+tokio-tungstenite.workspace = true
+futures.workspace = true
+tracing.workspace = true
+thiserror.workspace = true
+bytes.workspace = true
+
+[[bin]]
+name = "vennql-server"
+path = "src/main.rs"

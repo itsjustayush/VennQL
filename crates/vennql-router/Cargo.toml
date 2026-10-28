@@ -1,0 +1,22 @@
+[package]
+name = "vennql-router"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "High-performance O(1) procedure router and middleware pipeline for VennQL"
+
+[dependencies]
+vennql-core = { path = "../vennql-core" }
+tokio = { workspace = true, optional = true }
+futures.workspace = true
+tracing.workspace = true
+thiserror.workspace = true
+
+[features]
+default = []
+tokio = ["dep:tokio"]
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt"] }
+serde_json.workspace = true

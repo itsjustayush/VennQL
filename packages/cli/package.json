@@ -1,0 +1,19 @@
+{
+  "name": "vennql",
+  "version": "0.1.0",
+  "description": "VennQL CLI: Scaffolding, benching, and developer tooling for the VennQL binary API framework",
+  "bin": {
+    "vennql": "./bin/vennql.js"
+  },
+  "scripts": {
+    "test": "node bin/vennql.js --version"
+  },
+  "keywords": [
+    "vennql",
+    "cli",
+    "api-framework",
+    "zero-copy"
+  ],
+  "author": "VennQL Team",
+  "license": "MIT"
+}

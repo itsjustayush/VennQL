@@ -1,0 +1,12 @@
+[package]
+name = "benchmark-service"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+vennql-core = { path = "../../crates/vennql-core" }
+vennql-router = { path = "../../crates/vennql-router" }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+futures.workspace = true

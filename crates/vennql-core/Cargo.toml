@@ -1,0 +1,22 @@
+[package]
+name = "vennql-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Core wire specification, zero-copy binary frame parser, and protocol primitives for VennQL"
+
+[dependencies]
+thiserror.workspace = true
+byteorder.workspace = true
+bytes.workspace = true
+twox-hash.workspace = true
+serde = { workspace = true, optional = true }
+
+[features]
+default = ["std"]
+std = []
+serde = ["dep:serde"]
+
+[dev-dependencies]
+serde_json.workspace = true

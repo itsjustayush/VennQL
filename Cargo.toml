@@ -15,7 +15,7 @@ license = "MIT"
 repository = "https://github.com/vennql/vennql"
 
 [workspace.dependencies]
-tokio = { version = "=1.38.0", default-features = false, features = ["rt-multi-thread", "net", "io-util", "sync", "time", "macros"] }
+tokio = { version = "=1.38.0", default-features = false, features = ["macros", "rt-multi-thread", "net", "io-util"] }
 futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
 thiserror = "1.0"
 byteorder = "1.5"
