@@ -1,0 +1,12 @@
+setup.py
+tests/test_frame.py
+vennql/__init__.py
+vennql/app.py
+vennql/client.py
+vennql/frame.py
+vennql/opcode.py
+vennql.egg-info/PKG-INFO
+vennql.egg-info/SOURCES.txt
+vennql.egg-info/dependency_links.txt
+vennql.egg-info/requires.txt
+vennql.egg-info/top_level.txt

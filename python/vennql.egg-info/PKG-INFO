@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: vennql
+Version: 0.1.0
+Summary: The Zero-Copy, High-Throughput Binary API Framework & Protocol for Python
+Author: VennQL Contributors
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Internet :: WWW/HTTP
+Requires-Python: >=3.10
+Requires-Dist: websockets>=12.0
+Dynamic: author
+Dynamic: classifier
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary

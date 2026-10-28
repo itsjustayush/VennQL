@@ -72,6 +72,59 @@ const latencyMs = await client.ping();
 console.log(`Latency: ${latencyMs.toFixed(3)} ms`);
 ```
 
+### 3. First-Class Python SDK: FastAPI & Requests Ergonomics 🐍
+
+If you love Python, you do **not** have to write Rust. VennQL provides a complete Python package (`vennql`) with full decorator support and synchronous/asynchronous clients:
+
+#### Server in Python (`VennApp` — FastAPI-style):
+
+```python
+from vennql import VennApp
+
+app = VennApp(title="Bookstore API")
+
+BOOKS_DB = [
+    {"id": "1", "title": "The Hobbit", "author": "J.R.R. Tolkien", "price": 14.99},
+    {"id": "2", "title": "1984", "author": "George Orwell", "price": 12.50},
+]
+
+@app.query("books")
+def get_books(select: list = None):
+    """Selective field query without GraphQL AST overhead!"""
+    if select:
+        return [{k: b[k] for k in select if k in b} for b in BOOKS_DB]
+    return BOOKS_DB
+
+@app.mutate("create_book")
+def create_book(title: str, author: str, price: float = 9.99):
+    new_book = {"id": str(len(BOOKS_DB) + 1), "title": title, "author": author, "price": price}
+    BOOKS_DB.append(new_book)
+    return new_book
+
+if __name__ == "__main__":
+    app.run(port=8080)
+```
+
+#### Client in Python (`Client` — Requests-style):
+
+```python
+from vennql import Client
+
+with Client("ws://127.0.0.1:8080") as client:
+    # 1. Nanosecond Ping
+    print(f"Ping: {client.ping():.3f} ms")
+
+    # 2. Query with selective fields (omits price and rating)
+    books = client.query("books", select=["title", "author"])
+    print("Books:", books)
+
+    # 3. Mutation
+    new_book = client.mutate("create_book", title="Dune", author="Frank Herbert")
+    print("Created:", new_book)
+```
+
+> **The Best of Both Worlds**: The engine core remains in Rust for raw hardware performance, while developers write clean, elegant code in **Python** or **TypeScript**. Both languages communicate across the wire using the exact same zero-copy binary framing!
+
 ---
 
 ## 🥊 How VennQL Solves the Top 5 Bottlenecks of Existing Stacks
