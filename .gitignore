@@ -1,0 +1,36 @@
+# Rust
+target/
+**/*.rs.bk
+Cargo.lock
+
+# Node
+node_modules/
+dist/
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.installed.cfg
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.manifest
+*.spec
+.env
+.venv
+env/
+venv/
+ENV/

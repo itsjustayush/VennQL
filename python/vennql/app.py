@@ -2,11 +2,13 @@ import asyncio
 import inspect
 import json
 import os
+import time
 from typing import Any, Callable, Dict, Optional, Union
 import websockets
 from websockets.asyncio.server import serve
 from .frame import Frame
 from .opcode import OpCode, Flags
+from .logger import VennLogger, Colors
 
 class VennApp:
     """FastAPI/Strawberry-inspired Python API Framework for VennQL.
@@ -21,6 +23,8 @@ class VennApp:
         self.description = description
         self.procedures: Dict[int, Callable] = {}
         self.name_to_id: Dict[str, int] = {}
+        self.id_to_name: Dict[int, str] = {}
+        self.proc_opcodes: Dict[int, OpCode] = {}
         self._next_auto_id = 100
 
         # Register default health check if not overridden
@@ -47,6 +51,8 @@ class VennApp:
                 self._next_auto_id += 1
 
         self.name_to_id[proc_name] = proc_id
+        self.id_to_name[proc_id] = proc_name
+        self.proc_opcodes[proc_id] = default_op
 
         def decorator(func: Callable):
             self.procedures[proc_id] = func
@@ -54,109 +60,138 @@ class VennApp:
         return decorator
 
     async def _handle_connection(self, websocket):
-        async for message in websocket:
-            if not isinstance(message, (bytes, bytearray, memoryview)):
-                continue
+        remote = getattr(websocket, "remote_address", None)
+        client_addr = f"{remote[0]}:{remote[1]}" if remote else "client"
+        VennLogger.connection(client_addr, connected=True)
 
-            try:
-                frame = Frame.parse(message)
-            except Exception as e:
-                err_frame = Frame(
-                    op_code=OpCode.ERROR,
-                    flags=Flags.NONE,
-                    transaction_id=0,
-                    procedure_id=0,
-                    vtable_offset=0,
-                    payload=f"Frame parse error: {e}".encode('utf-8')
-                )
-                await websocket.send(err_frame.encode())
-                continue
+        try:
+            async for message in websocket:
+                if not isinstance(message, (bytes, bytearray, memoryview)):
+                    continue
 
-            # Fast-path Ping
-            if frame.op_code == OpCode.PING:
-                pong = Frame(
-                    op_code=OpCode.PONG,
-                    flags=Flags.NONE,
-                    transaction_id=frame.transaction_id,
-                    procedure_id=0,
-                    vtable_offset=0,
-                    payload=b''
-                )
-                await websocket.send(pong.encode())
-                continue
+                t0 = time.perf_counter()
+                try:
+                    frame = Frame.parse(message)
+                except Exception as e:
+                    VennLogger.error(0, 0, f"Frame parse error: {e}")
+                    err_frame = Frame(
+                        op_code=OpCode.ERROR,
+                        flags=Flags.NONE,
+                        transaction_id=0,
+                        procedure_id=0,
+                        vtable_offset=0,
+                        payload=f"Frame parse error: {e}".encode('utf-8')
+                    )
+                    await websocket.send(err_frame.encode())
+                    continue
 
-            handler = self.procedures.get(frame.procedure_id)
-            if not handler:
-                err_frame = Frame(
-                    op_code=OpCode.ERROR,
-                    flags=Flags.NONE,
-                    transaction_id=frame.transaction_id,
-                    procedure_id=frame.procedure_id,
-                    vtable_offset=0,
-                    payload=f"Procedure #{frame.procedure_id} not registered".encode('utf-8')
-                )
-                await websocket.send(err_frame.encode())
-                continue
+                # Fast-path Ping
+                if frame.op_code == OpCode.PING:
+                    elapsed = (time.perf_counter() - t0) * 1000.0
+                    VennLogger.ping(frame.transaction_id, elapsed)
+                    pong = Frame(
+                        op_code=OpCode.PONG,
+                        flags=Flags.NONE,
+                        transaction_id=frame.transaction_id,
+                        procedure_id=0,
+                        vtable_offset=0,
+                        payload=b''
+                    )
+                    await websocket.send(pong.encode())
+                    continue
 
-            # Invoke handler
-            try:
+                proc_name = self.id_to_name.get(frame.procedure_id, f"proc_{frame.procedure_id}")
+                handler = self.procedures.get(frame.procedure_id)
+                if not handler:
+                    VennLogger.error(frame.procedure_id, frame.transaction_id, f"Procedure not registered", proc_name=proc_name)
+                    err_frame = Frame(
+                        op_code=OpCode.ERROR,
+                        flags=Flags.NONE,
+                        transaction_id=frame.transaction_id,
+                        procedure_id=frame.procedure_id,
+                        vtable_offset=0,
+                        payload=f"Procedure #{frame.procedure_id} not registered".encode('utf-8')
+                    )
+                    await websocket.send(err_frame.encode())
+                    continue
+
+                # Invoke handler
+                t_start = time.perf_counter()
                 raw_payload = bytes(frame.payload)
                 payload_obj = None
-                if raw_payload:
-                    try:
-                        payload_obj = json.loads(raw_payload.decode('utf-8'))
-                    except Exception:
-                        payload_obj = raw_payload.decode('utf-8', errors='replace')
+                try:
+                    if raw_payload:
+                        try:
+                            payload_obj = json.loads(raw_payload.decode('utf-8'))
+                        except Exception:
+                            payload_obj = raw_payload.decode('utf-8', errors='replace')
 
-                sig = inspect.signature(handler)
-                params = sig.parameters
+                    sig = inspect.signature(handler)
+                    params = sig.parameters
 
-                if len(params) == 0:
-                    result = handler()
-                elif isinstance(payload_obj, dict):
-                    kwargs = {k: v for k, v in payload_obj.items() if k in params}
-                    if kwargs:
-                        result = handler(**kwargs)
+                    if len(params) == 0:
+                        result = handler()
+                    elif isinstance(payload_obj, dict):
+                        kwargs = {k: v for k, v in payload_obj.items() if k in params}
+                        if kwargs:
+                            result = handler(**kwargs)
+                        elif len(params) == 1:
+                            result = handler(payload_obj)
+                        else:
+                            result = handler()
                     elif len(params) == 1:
                         result = handler(payload_obj)
                     else:
                         result = handler()
-                elif len(params) == 1:
-                    result = handler(payload_obj)
-                else:
-                    result = handler()
 
-                if inspect.isawaitable(result):
-                    result = await result
+                    if inspect.isawaitable(result):
+                        result = await result
 
-                # Serialize response
-                if isinstance(result, bytes):
-                    resp_bytes = result
-                elif isinstance(result, str):
-                    resp_bytes = result.encode('utf-8')
-                else:
-                    resp_bytes = json.dumps(result).encode('utf-8')
+                    # Serialize response
+                    if isinstance(result, bytes):
+                        resp_bytes = result
+                    elif isinstance(result, str):
+                        resp_bytes = result.encode('utf-8')
+                    else:
+                        resp_bytes = json.dumps(result).encode('utf-8')
 
-                resp_frame = Frame(
-                    op_code=OpCode.ACK,
-                    flags=Flags.CACHEABLE if frame.flags & Flags.CACHEABLE else Flags.NONE,
-                    transaction_id=frame.transaction_id,
-                    procedure_id=frame.procedure_id,
-                    vtable_offset=0,
-                    payload=resp_bytes
-                )
-                await websocket.send(resp_frame.encode())
+                    elapsed = (time.perf_counter() - t_start) * 1000.0
 
-            except Exception as e:
-                err_frame = Frame(
-                    op_code=OpCode.ERROR,
-                    flags=Flags.NONE,
-                    transaction_id=frame.transaction_id,
-                    procedure_id=frame.procedure_id,
-                    vtable_offset=0,
-                    payload=f"Handler execution error: {e}".encode('utf-8')
-                )
-                await websocket.send(err_frame.encode())
+                    # Log Query vs Mutation
+                    is_mutation = (frame.op_code == OpCode.MUTATE) or (self.proc_opcodes.get(frame.procedure_id) == OpCode.MUTATE)
+                    if is_mutation:
+                        summary = json.dumps(payload_obj) if payload_obj else None
+                        if summary and len(summary) > 75:
+                            summary = summary[:72] + "..."
+                        VennLogger.mutation(frame.procedure_id, proc_name, frame.transaction_id, len(raw_payload), len(resp_bytes), elapsed, payload_summary=summary)
+                    else:
+                        select_fields = payload_obj.get("select") if isinstance(payload_obj, dict) else None
+                        VennLogger.query(frame.procedure_id, proc_name, frame.transaction_id, len(raw_payload), len(resp_bytes), elapsed, projection=select_fields)
+
+                    resp_frame = Frame(
+                        op_code=OpCode.ACK,
+                        flags=Flags.CACHEABLE if frame.flags & Flags.CACHEABLE else Flags.NONE,
+                        transaction_id=frame.transaction_id,
+                        procedure_id=frame.procedure_id,
+                        vtable_offset=0,
+                        payload=resp_bytes
+                    )
+                    await websocket.send(resp_frame.encode())
+
+                except Exception as e:
+                    elapsed = (time.perf_counter() - t_start) * 1000.0
+                    VennLogger.error(frame.procedure_id, frame.transaction_id, f"Execution error: {e}", proc_name=proc_name)
+                    err_frame = Frame(
+                        op_code=OpCode.ERROR,
+                        flags=Flags.NONE,
+                        transaction_id=frame.transaction_id,
+                        procedure_id=frame.procedure_id,
+                        vtable_offset=0,
+                        payload=f"Handler execution error: {e}".encode('utf-8')
+                    )
+                    await websocket.send(err_frame.encode())
+        finally:
+            VennLogger.connection(client_addr, connected=False)
 
     async def _process_request(self, connection, request):
         """Intercept HTTP requests to serve Venn Studio in browsers."""
@@ -171,6 +206,7 @@ class VennApp:
             if os.path.exists(studio_path):
                 with open(studio_path, "r", encoding="utf-8") as f:
                     html_content = f.read()
+                VennLogger.http_request("GET", path, 200, len(html_content), label="Venn Studio Web UI")
                 response = connection.respond(200, html_content)
                 response.headers["Content-Type"] = "text/html; charset=utf-8"
                 return response
@@ -178,10 +214,7 @@ class VennApp:
 
     def run(self, host: str = "127.0.0.1", port: int = 8080):
         """Run the VennQL Python server."""
-        print(f"\n  [VennQL] Python Engine ({self.title})")
-        print(f"  * Binary Protocol: v1.0 | Mode: Zero-Copy")
-        print(f"  * Venn Studio: http://{host}:{port}/")
-        print(f"  * Listening on ws://{host}:{port}\n")
+        VennLogger.banner(self.title, host, port, self.procedures, self.name_to_id)
 
         async def main():
             async with serve(
@@ -195,4 +228,4 @@ class VennApp:
         try:
             asyncio.run(main())
         except KeyboardInterrupt:
-            print("\\n[VennQL] Server stopped gracefully.")
+            VennLogger.shutdown()
