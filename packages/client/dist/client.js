@@ -9,12 +9,37 @@ class VennClient {
     pending = new Map();
     defaultTimeout;
     wsFactory;
+    procedureMap = new Map([
+        ['health', 1],
+        ['echo', 2],
+        ['sum', 3],
+        ['books', 4],
+        ['getUser', 10],
+    ]);
     constructor(options = {}) {
         this.defaultTimeout = options.timeoutMs ?? 10000;
         this.wsFactory = options.WebSocketClass || globalThis.WebSocket;
+        if (options.procedures) {
+            for (const [name, id] of Object.entries(options.procedures)) {
+                this.procedureMap.set(name, id);
+            }
+        }
         if (!this.wsFactory) {
             throw new Error('No WebSocket implementation found. If running in an older Node.js, install and provide `ws` via options.');
         }
+    }
+    registerProcedure(name, id) {
+        this.procedureMap.set(name, id);
+        return this;
+    }
+    resolveProcedureId(target) {
+        if (typeof target === 'number')
+            return target;
+        const resolved = this.procedureMap.get(target);
+        if (resolved === undefined) {
+            throw new Error(`Unknown VennQL procedure name: "${target}". Register it via client.registerProcedure('${target}', id).`);
+        }
+        return resolved;
     }
     async connect(url) {
         return new Promise((resolve, reject) => {
@@ -79,10 +104,11 @@ class VennClient {
             pending.resolve(frame.payload);
         }
     }
-    async call(opCode, procedureId, payloadData) {
+    async call(opCode, procedureTarget, payloadData) {
         if (!this.ws || this.ws.readyState !== 1) {
             throw new Error('VennQL client is not connected to a server.');
         }
+        const procedureId = this.resolveProcedureId(procedureTarget);
         const txId = this.txCounter++;
         if (this.txCounter > 0x7fffffff) {
             this.txCounter = 1;
@@ -118,12 +144,12 @@ class VennClient {
             this.ws.send(packet);
         });
     }
-    async query(procedureId, payload) {
-        const raw = await this.call(opcode_1.OpCode.Query, procedureId, payload);
+    async query(target, payload) {
+        const raw = await this.call(opcode_1.OpCode.Query, target, payload);
         return this.parseResponsePayload(raw);
     }
-    async mutate(procedureId, payload) {
-        const raw = await this.call(opcode_1.OpCode.Mutate, procedureId, payload);
+    async mutate(target, payload) {
+        const raw = await this.call(opcode_1.OpCode.Mutate, target, payload);
         return this.parseResponsePayload(raw);
     }
     async ping() {

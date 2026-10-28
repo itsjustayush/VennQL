@@ -45,11 +45,35 @@ impl VennServer {
     }
 
     async fn handle_connection(
-        stream: TcpStream,
+        mut stream: TcpStream,
         peer_addr: SocketAddr,
         client_id: u64,
         router: Arc<VennRouter>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let mut peek_buf = [0u8; 1024];
+        let n = stream.peek(&mut peek_buf).await?;
+        let peek_str = String::from_utf8_lossy(&peek_buf[..n]);
+
+        if (peek_str.starts_with("GET ") || peek_str.starts_with("HEAD "))
+            && !peek_str.to_lowercase().contains("upgrade: websocket")
+        {
+            let mut drain = vec![0u8; n];
+            let _ = stream.read_exact(&mut drain).await;
+
+            let body = include_str!("studio.html");
+            let response = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                body.len(),
+                body
+            );
+            let _ = stream.write_all(response.as_bytes()).await;
+            let _ = stream.flush().await;
+            let _ = stream.shutdown().await;
+            return Ok(());
+        }
+
         let ws_stream = tokio_tungstenite::accept_async(stream).await?;
         println!("[VennQL] Client #{} connected from {}", client_id, peer_addr);
 

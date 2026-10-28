@@ -7,9 +7,17 @@ interface PendingRequest {
   timer: ReturnType<typeof setTimeout> | number;
 }
 
+export type ProcedureTarget = number | string;
+
+export interface QueryOptions {
+  select?: string[];
+  [key: string]: any;
+}
+
 export interface VennClientOptions {
   timeoutMs?: number;
   WebSocketClass?: typeof WebSocket;
+  procedures?: Record<string, number>;
 }
 
 export class VennClient {
@@ -18,15 +26,41 @@ export class VennClient {
   private pending = new Map<number, PendingRequest>();
   private defaultTimeout: number;
   private wsFactory: typeof WebSocket;
+  private procedureMap = new Map<string, number>([
+    ['health', 1],
+    ['echo', 2],
+    ['sum', 3],
+    ['books', 4],
+    ['getUser', 10],
+  ]);
 
   constructor(options: VennClientOptions = {}) {
     this.defaultTimeout = options.timeoutMs ?? 10000;
     this.wsFactory = options.WebSocketClass || (globalThis as any).WebSocket;
+    if (options.procedures) {
+      for (const [name, id] of Object.entries(options.procedures)) {
+        this.procedureMap.set(name, id);
+      }
+    }
     if (!this.wsFactory) {
       throw new Error(
         'No WebSocket implementation found. If running in an older Node.js, install and provide `ws` via options.'
       );
     }
+  }
+
+  public registerProcedure(name: string, id: number): this {
+    this.procedureMap.set(name, id);
+    return this;
+  }
+
+  private resolveProcedureId(target: ProcedureTarget): number {
+    if (typeof target === 'number') return target;
+    const resolved = this.procedureMap.get(target);
+    if (resolved === undefined) {
+      throw new Error(`Unknown VennQL procedure name: "${target}". Register it via client.registerProcedure('${target}', id).`);
+    }
+    return resolved;
   }
 
   public async connect(url: string): Promise<void> {
@@ -99,13 +133,14 @@ export class VennClient {
 
   public async call(
     opCode: OpCode,
-    procedureId: number,
+    procedureTarget: ProcedureTarget,
     payloadData?: Uint8Array | object | string
   ): Promise<Uint8Array> {
     if (!this.ws || this.ws.readyState !== 1) {
       throw new Error('VennQL client is not connected to a server.');
     }
 
+    const procedureId = this.resolveProcedureId(procedureTarget);
     const txId = this.txCounter++;
     if (this.txCounter > 0x7fffffff) {
       this.txCounter = 1;
@@ -144,18 +179,18 @@ export class VennClient {
   }
 
   public async query<T = unknown>(
-    procedureId: number,
-    payload?: Uint8Array | object | string
+    target: ProcedureTarget,
+    payload?: Uint8Array | object | string | QueryOptions
   ): Promise<T> {
-    const raw = await this.call(OpCode.Query, procedureId, payload);
+    const raw = await this.call(OpCode.Query, target, payload);
     return this.parseResponsePayload<T>(raw);
   }
 
   public async mutate<T = unknown>(
-    procedureId: number,
+    target: ProcedureTarget,
     payload?: Uint8Array | object | string
   ): Promise<T> {
-    const raw = await this.call(OpCode.Mutate, procedureId, payload);
+    const raw = await this.call(OpCode.Mutate, target, payload);
     return this.parseResponsePayload<T>(raw);
   }
 
