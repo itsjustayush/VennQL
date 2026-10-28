@@ -34,3 +34,13 @@ share/python-wheels/
 env/
 venv/
 ENV/
+
+# Benchmark Datasets & Internal Dev Results (Keep private)
+benchmarks/data/
+benchmarks/results/
+benchmarks/kaggle_datasets_list.json
+benchmarks/kaggle_datasets_list.txt
+*.parquet
+*.sqlite
+*.csv.zip
+
