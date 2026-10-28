@@ -1,0 +1,27 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/vennql-core",
+    "crates/vennql-router",
+    "crates/vennql-server",
+    "examples/benchmark-service",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["VennQL Team"]
+license = "MIT"
+repository = "https://github.com/vennql/vennql"
+
+[workspace.dependencies]
+tokio = { version = "=1.38.0", default-features = false, features = ["rt-multi-thread", "net", "io-util", "sync", "time", "macros"] }
+futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
+thiserror = "1.0"
+byteorder = "1.5"
+bytes = "1.6"
+twox-hash = "1.6"
+tokio-tungstenite = { version = "0.23", default-features = false, features = ["connect", "handshake"] }
+tracing = { version = "0.1", default-features = false, features = ["std"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

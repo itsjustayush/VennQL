@@ -1,0 +1,22 @@
+{
+  "name": "vennql-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "VennQL: Zero-Copy, High-Throughput Binary API Framework & Protocol",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run --workspaces build",
+    "test": "npm run --workspaces test"
+  },
+  "keywords": [
+    "vennql",
+    "api-framework",
+    "binary-protocol",
+    "zero-copy",
+    "webtransport",
+    "rpc"
+  ],
+  "license": "MIT"
+}
