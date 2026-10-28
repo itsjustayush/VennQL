@@ -324,10 +324,48 @@ VennQL/
 ├── packages/
 │   ├── client/                        # Zero-copy TypeScript SDK for Browser & Node.js
 │   └── cli/                           # `vennql` CLI (init, dev, bench, check)
+├── python/
+│   └── vennql/                        # Ergonomic Python SDK (FastAPI app & requests client)
+├── web/                               # Official Website (graphql.org clone & adaptive UI)
+│   ├── index.html                     # Homepage with interactive query sandbox & geometry
+│   ├── learn.html                     # Full documentation & wire spec guides
+│   ├── compare.html                   # Architectural comparison matrix
+│   ├── studio.html                    # In-browser Venn Studio binary playground
+│   ├── styles/main.css                # Polished design system (light/dark, animations)
+│   └── scripts/main.js                # Interactive playground controller & code generator
+├── vercel.json                        # Vercel configuration for static web deployment
 └── examples/
     ├── benchmark-service/             # 1,000,000-op in-memory nanosecond benchmark suite
     └── e2e_demo.js                    # End-to-end binary WebSocket verification script
 ```
+
+---
+
+## 🌐 Official Website & Vercel Deployment
+
+The repository includes the official VennQL website in [`web/`](file:///e:/Projects/VennQL/web), reverse-engineered and styled after [`graphql.org`](https://graphql.org/) with exact dark/light themes, animations, micro-interactions, responsive sidebars, and an interactive query sandbox.
+
+### Local Preview
+To preview the website locally:
+```bash
+# Using Python
+python -m http.server 3000 --directory web
+
+# Or using Node
+npx serve web
+```
+Then visit `http://localhost:3000`.
+
+### Vercel Deployment
+The repository includes a ready-to-deploy [`vercel.json`](file:///e:/Projects/VennQL/vercel.json) configured to serve the `web/` directory while keeping Rust/Python backend code untouched:
+```bash
+# Deploy directly to Vercel
+vercel
+```
+`vercel.json` configures:
+- `outputDirectory: "web"`
+- `cleanUrls: true` (e.g., `/learn`, `/compare`, `/studio`)
+- Long-term immutable caching for CSS & JavaScript assets.
 
 ---
 
