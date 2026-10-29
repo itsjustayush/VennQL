@@ -2,6 +2,7 @@ import { OpCode } from './opcode';
 export type ProcedureTarget = number | string;
 export interface QueryOptions {
     select?: string[];
+    bitmask?: number;
     [key: string]: any;
 }
 export interface VennClientOptions {
@@ -22,7 +23,7 @@ export declare class VennClient {
     connect(url: string): Promise<void>;
     private attachListeners;
     private handleIncomingFrame;
-    call(opCode: OpCode, procedureTarget: ProcedureTarget, payloadData?: Uint8Array | object | string): Promise<Uint8Array>;
+    call(opCode: OpCode, procedureTarget: ProcedureTarget, payloadData?: Uint8Array | object | string, vtableOffset?: number): Promise<Uint8Array>;
     query<T = unknown>(target: ProcedureTarget, payload?: Uint8Array | object | string | QueryOptions): Promise<T>;
     mutate<T = unknown>(target: ProcedureTarget, payload?: Uint8Array | object | string): Promise<T>;
     ping(): Promise<number>;

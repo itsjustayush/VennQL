@@ -4,7 +4,10 @@ use vennql_router::VennRouter;
 
 #[tokio::main]
 async fn main() {
-    println!("=== VennQL Zero-Copy In-Memory Microbenchmark ===");
+    let is_json = std::env::args().any(|a| a == "--json");
+    if !is_json {
+        println!("=== VennQL Zero-Copy In-Memory Microbenchmark ===");
+    }
 
     let payload = b"{\"action\":\"evaluate_benchmark\",\"count\":1000000,\"tier\":\"unlimited\"}";
     let iterations = 1_000_000;
@@ -20,13 +23,6 @@ async fn main() {
     let encode_nanos_per_op = encode_duration.as_nanos() as f64 / iterations as f64;
     let encode_throughput = iterations as f64 / encode_duration.as_secs_f64();
 
-    println!(
-        "[1] Frame Encoding: {:?} total | {:.2} ns/op | {:.2} M ops/sec",
-        encode_duration,
-        encode_nanos_per_op,
-        encode_throughput / 1_000_000.0
-    );
-
     let wire_bytes = frame.to_bytes();
     let start = Instant::now();
     for _ in 0..iterations {
@@ -36,13 +32,6 @@ async fn main() {
     let parse_duration = start.elapsed();
     let parse_nanos_per_op = parse_duration.as_nanos() as f64 / iterations as f64;
     let parse_throughput = iterations as f64 / parse_duration.as_secs_f64();
-
-    println!(
-        "[2] Zero-Copy Parsing: {:?} total | {:.2} ns/op | {:.2} M ops/sec",
-        parse_duration,
-        parse_nanos_per_op,
-        parse_throughput / 1_000_000.0
-    );
 
     let mut router = VennRouter::new();
     router.route_sync(101, |ctx| {
@@ -59,12 +48,35 @@ async fn main() {
     let dispatch_nanos_per_op = dispatch_duration.as_nanos() as f64 / iterations as f64;
     let dispatch_throughput = iterations as f64 / dispatch_duration.as_secs_f64();
 
-    println!(
-        "[3] End-to-End Dispatch: {:?} total | {:.2} ns/op | {:.2} M ops/sec",
-        dispatch_duration,
-        dispatch_nanos_per_op,
-        dispatch_throughput / 1_000_000.0
-    );
-
-    println!("==================================================");
+    if is_json {
+        println!(
+            "{{\"encode_ns\":{:.2},\"encode_mops\":{:.2},\"parse_ns\":{:.2},\"parse_mops\":{:.2},\"dispatch_ns\":{:.2},\"dispatch_mops\":{:.2}}}",
+            encode_nanos_per_op,
+            encode_throughput / 1_000_000.0,
+            parse_nanos_per_op,
+            parse_throughput / 1_000_000.0,
+            dispatch_nanos_per_op,
+            dispatch_throughput / 1_000_000.0
+        );
+    } else {
+        println!(
+            "[1] Frame Encoding: {:?} total | {:.2} ns/op | {:.2} M ops/sec",
+            encode_duration,
+            encode_nanos_per_op,
+            encode_throughput / 1_000_000.0
+        );
+        println!(
+            "[2] Zero-Copy Parsing: {:?} total | {:.2} ns/op | {:.2} M ops/sec",
+            parse_duration,
+            parse_nanos_per_op,
+            parse_throughput / 1_000_000.0
+        );
+        println!(
+            "[3] End-to-End Dispatch: {:?} total | {:.2} ns/op | {:.2} M ops/sec",
+            dispatch_duration,
+            dispatch_nanos_per_op,
+            dispatch_throughput / 1_000_000.0
+        );
+        println!("==================================================");
+    }
 }

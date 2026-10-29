@@ -333,11 +333,11 @@ console.log(`Latency: ${latency.toFixed(3)} ms`);
       </pre>
 
       <h2 id="spec-benchmarks">Empirical Benchmarks</h2>
-      <p>Measured on 1,000,000 requests in release profile:</p>
+      <p>Measured directly on 1,000,000 requests in release profile (x86_64 hardware):</p>
       <ul>
-        <li><strong>Binary Frame Encoding</strong>: <code>24.97 ns / op</code> (40.05 Million ops/sec)</li>
-        <li><strong>Zero-Copy Frame Parsing</strong>: <code>32.31 ns / op</code> (30.95 Million ops/sec)</li>
-        <li><strong>End-to-End Async Dispatch</strong>: <code>482.02 ns / op</code> (2.07 Million ops/sec)</li>
+        <li><strong>Binary Frame Encoding</strong>: <code>21.52 ns / op</code> (46.48 Million ops/sec)</li>
+        <li><strong>Zero-Copy Frame Parsing</strong>: <code>34.98 ns / op</code> (28.59 Million ops/sec)</li>
+        <li><strong>End-to-End Async Dispatch</strong>: <code>539.38 ns / op</code> (1.85 Million ops/sec)</li>
       </ul>
     </main>
   </div>

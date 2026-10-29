@@ -104,7 +104,7 @@ class VennClient {
             pending.resolve(frame.payload);
         }
     }
-    async call(opCode, procedureTarget, payloadData) {
+    async call(opCode, procedureTarget, payloadData, vtableOffset = 0) {
         if (!this.ws || this.ws.readyState !== 1) {
             throw new Error('VennQL client is not connected to a server.');
         }
@@ -132,7 +132,7 @@ class VennClient {
             flags,
             transactionId: txId,
             procedureId,
-            vtableOffset: 0,
+            vtableOffset,
             payload,
         });
         return new Promise((resolve, reject) => {
@@ -145,7 +145,13 @@ class VennClient {
         });
     }
     async query(target, payload) {
-        const raw = await this.call(opcode_1.OpCode.Query, target, payload);
+        let vtableOffset = 0;
+        if (payload && typeof payload === 'object' && !(payload instanceof Uint8Array)) {
+            if ('bitmask' in payload && typeof payload.bitmask === 'number') {
+                vtableOffset = payload.bitmask;
+            }
+        }
+        const raw = await this.call(opcode_1.OpCode.Query, target, payload, vtableOffset);
         return this.parseResponsePayload(raw);
     }
     async mutate(target, payload) {
