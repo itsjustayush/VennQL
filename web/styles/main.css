@@ -5,33 +5,33 @@
 
 :root {
   /* Color Tokens - Light Mode */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'Fira Code', 'Commit Mono', 'JetBrains Mono', Menlo, monospace;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Commit Mono', Menlo, monospace;
 
   --pri-base: #00b4d8;
   --pri-dark: #0077b6;
   --pri-light: #90e0ef;
   --pri-lighter: #caf0f8;
   --accent-pink: #e024c3;
-  --accent-purple: #7209b7;
+  --accent-purple: #a855f7;
   --accent-cyan: #00d2ff;
   --accent-green: #10b981;
   --accent-amber: #f59e0b;
 
-  --bg-page: #fbfbf9;
+  --bg-page: #f8fafc;
   --bg-surface: #ffffff;
-  --bg-card: #f8fafc;
-  --bg-subtle: #f1f5f9;
+  --bg-card: #f1f5f9;
+  --bg-subtle: #e2e8f0;
   --border: #e2e8f0;
-  --border-focus: #00b4d8;
+  --border-focus: #00d2ff;
 
-  --text-main: #0f172a;
+  --text-main: #09090b;
   --text-body: #334155;
   --text-muted: #64748b;
   --text-faint: #94a3b8;
 
-  --code-bg: #0d1117;
-  --code-text: #e6edf3;
+  --code-bg: #090d16;
+  --code-text: #e2e8f0;
 
   --navbar-height: 64px;
   --radius-sm: 6px;
@@ -48,18 +48,21 @@
 }
 
 html.dark {
-  /* Color Tokens - Dark Mode */
-  --bg-page: #0a0c10;
-  --bg-surface: #10141d;
-  --bg-card: #151b26;
-  --bg-subtle: #1c2433;
-  --border: #232d3f;
+  /* Color Tokens - Dark Mode (Premium Shadcn / Mintlify) */
+  --bg-page: #09090b;
+  --bg-surface: #0e121a;
+  --bg-card: #131824;
+  --bg-subtle: #1c2333;
+  --border: #232b3b;
   --border-focus: #00d2ff;
 
   --text-main: #f8fafc;
   --text-body: #cbd5e1;
   --text-muted: #94a3b8;
   --text-faint: #64748b;
+
+  --code-bg: #070a11;
+  --code-text: #e2e8f0;
 
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -813,3 +816,862 @@ footer {
   .footer-grid { grid-template-columns: 1fr 1fr; }
   .nav-links { display: none; }
 }
+
+/* ==========================================================================
+   Mintlify-Style Documentation System & Shadcn UI Component Suite
+   ========================================================================== */
+
+/* 1. 3-Column Docs Layout */
+.docs-layout-3col {
+  display: grid;
+  grid-template-columns: 280px 1fr 240px;
+  max-width: 1560px;
+  margin: 0 auto;
+  min-height: calc(100vh - var(--navbar-height));
+  position: relative;
+}
+
+@media (max-width: 1280px) {
+  .docs-layout-3col {
+    grid-template-columns: 260px 1fr;
+  }
+  .docs-toc { display: none !important; }
+}
+
+@media (max-width: 860px) {
+  .docs-layout-3col {
+    grid-template-columns: 1fr;
+  }
+  .docs-sidebar { display: none; }
+  .docs-content { padding: 2rem 1.25rem !important; }
+}
+
+/* Sticky Left Sidebar (Navigation) */
+.docs-sidebar {
+  position: sticky;
+  top: var(--navbar-height);
+  height: calc(100vh - var(--navbar-height));
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  padding: 2rem 1.25rem;
+  background: var(--bg-surface);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.sidebar-search-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.85rem;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 1.75rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.sidebar-search-btn:hover {
+  border-color: var(--accent-cyan);
+  color: var(--text-main);
+  box-shadow: 0 0 15px rgba(0, 210, 255, 0.15);
+}
+
+.sidebar-group {
+  margin-bottom: 1.75rem;
+}
+
+.sidebar-group-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  margin-bottom: 0.6rem;
+  padding-left: 0.5rem;
+}
+
+.sidebar-nav-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sidebar-nav-item a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-body);
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+  border-left: 2px solid transparent;
+}
+
+.sidebar-nav-item a:hover {
+  color: var(--text-main);
+  background: var(--bg-subtle);
+}
+
+.sidebar-nav-item a.active {
+  color: var(--accent-cyan);
+  background: rgba(0, 210, 255, 0.08);
+  border-left-color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.sidebar-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.04em;
+}
+
+.sidebar-badge.cyan {
+  background: rgba(0, 210, 255, 0.15);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(0, 210, 255, 0.3);
+}
+
+.sidebar-badge.purple {
+  background: rgba(168, 85, 247, 0.15);
+  color: var(--accent-purple);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+/* Center Documentation Body */
+.docs-content {
+  padding: 2.75rem 3.5rem;
+  max-width: 860px;
+  line-height: 1.7;
+}
+
+.docs-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--text-faint);
+  margin-bottom: 1.25rem;
+}
+
+.docs-breadcrumbs a {
+  color: var(--text-muted);
+}
+
+.docs-breadcrumbs a:hover {
+  color: var(--accent-cyan);
+}
+
+.docs-content h1 {
+  font-size: 2.6rem;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  color: var(--text-main);
+  margin-bottom: 1rem;
+}
+
+.docs-lead {
+  font-size: 1.15rem;
+  color: var(--text-muted);
+  line-height: 1.65;
+  margin-bottom: 2.25rem;
+  font-weight: 400;
+}
+
+.docs-content h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text-main);
+  margin-top: 3.25rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.docs-content h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--text-main);
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.docs-content p, .docs-content li {
+  font-size: 1rem;
+  color: var(--text-body);
+  margin-bottom: 1.15rem;
+}
+
+.docs-content ul {
+  margin-left: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Right Sidebar (On This Page Table of Contents) */
+.docs-toc {
+  position: sticky;
+  top: var(--navbar-height);
+  height: calc(100vh - var(--navbar-height));
+  overflow-y: auto;
+  padding: 2.5rem 1.25rem;
+  border-left: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+
+.toc-heading {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  margin-bottom: 0.85rem;
+}
+
+.toc-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toc-link {
+  color: var(--text-muted);
+  display: block;
+  line-height: 1.4;
+  transition: all 0.15s;
+  padding-left: 0.5rem;
+  border-left: 2px solid transparent;
+}
+
+.toc-link:hover, .toc-link.active {
+  color: var(--accent-cyan);
+  border-left-color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   2. Mintlify-Style Code Blocks & Syntax Color Linting
+   ========================================================================== */
+.mint-code-block {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin: 1.75rem 0 2rem;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  position: relative;
+}
+
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+
+.code-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.window-dots {
+  display: flex;
+  gap: 5px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.dot-red { background: #ef4444; }
+.dot-yellow { background: #f59e0b; }
+.dot-green { background: #10b981; }
+
+.code-filename {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.code-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.code-tabs {
+  display: flex;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.code-tab-btn {
+  padding: 0.2rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-radius: calc(var(--radius-sm) - 2px);
+  transition: all 0.15s;
+  cursor: pointer;
+}
+
+.code-tab-btn:hover {
+  color: var(--text-main);
+}
+
+.code-tab-btn.active {
+  background: var(--accent-cyan);
+  color: #000000;
+  font-weight: 700;
+}
+
+.code-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.code-copy-btn:hover {
+  color: var(--text-main);
+  border-color: var(--accent-cyan);
+}
+
+.code-copy-btn.copied {
+  color: #10b981;
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.mint-code-block pre {
+  margin: 0;
+  padding: 1.25rem;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: #e2e8f0;
+}
+
+.mint-code-block code {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* Prism Color Linting Token Styling */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #64748b !important;
+  font-style: italic;
+}
+
+.token.punctuation {
+  color: #94a3b8 !important;
+}
+
+.token.property,
+.token.tag,
+.token.constant,
+.token.symbol,
+.token.deleted {
+  color: #f472b6 !important;
+}
+
+.token.boolean,
+.token.number {
+  color: #fb923c !important;
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+  color: #34d399 !important;
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: #38bdf8 !important;
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+  color: #c084fc !important;
+  font-weight: 600;
+}
+
+.token.function,
+.token.class-name {
+  color: #38bdf8 !important;
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+  color: #facc15 !important;
+}
+
+/* ==========================================================================
+   3. Mintlify-Style Callout Boxes
+   ========================================================================== */
+.callout-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  margin: 1.75rem 0;
+  border: 1px solid var(--border);
+  line-height: 1.6;
+}
+
+.callout-box.note {
+  background: rgba(0, 210, 255, 0.06);
+  border-color: rgba(0, 210, 255, 0.3);
+}
+
+.callout-box.note .callout-icon {
+  color: var(--accent-cyan);
+}
+
+.callout-box.tip {
+  background: rgba(16, 185, 129, 0.06);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.callout-box.tip .callout-icon {
+  color: #10b981;
+}
+
+.callout-box.warning {
+  background: rgba(245, 158, 11, 0.06);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.callout-box.warning .callout-icon {
+  color: #f59e0b;
+}
+
+.callout-icon {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.callout-content {
+  flex: 1;
+}
+
+.callout-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+  color: var(--text-main);
+}
+
+.callout-content p {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--text-body);
+}
+
+/* ==========================================================================
+   4. Step-by-Step Walkthrough Component
+   ========================================================================== */
+.steps-container {
+  position: relative;
+  padding-left: 2.25rem;
+  border-left: 2px solid var(--border);
+  margin: 2.25rem 0;
+}
+
+.step-item {
+  position: relative;
+  margin-bottom: 2.5rem;
+}
+
+.step-item:last-child {
+  margin-bottom: 0.5rem;
+}
+
+.step-circle {
+  position: absolute;
+  left: -3.05rem;
+  top: -0.15rem;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 2px solid var(--accent-cyan);
+  color: var(--accent-cyan);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.75rem;
+  box-shadow: 0 0 10px rgba(0, 210, 255, 0.3);
+}
+
+.step-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
+}
+
+/* ==========================================================================
+   5. Parameter & Schema Table (Shadcn style)
+   ========================================================================== */
+.param-table-wrapper {
+  margin: 1.5rem 0 2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-surface);
+}
+
+.param-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.param-table th {
+  background: var(--bg-subtle);
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.param-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  color: var(--text-body);
+}
+
+.param-table tr:last-child td {
+  border-bottom: none;
+}
+
+.param-name {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.param-type {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--accent-purple);
+  background: rgba(168, 85, 247, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-top: 0.25rem;
+}
+
+/* ==========================================================================
+   6. Interactive Docs Query Simulator Widget (Try It)
+   ========================================================================== */
+.docs-playground {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin: 2.5rem 0;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+.playground-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border);
+}
+
+.playground-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-main);
+}
+
+.playground-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  padding: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .playground-grid { grid-template-columns: 1fr; }
+}
+
+.playground-field-group {
+  margin-bottom: 1rem;
+}
+
+.playground-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 0.5rem;
+}
+
+.playground-select {
+  width: 100%;
+  padding: 0.55rem 0.85rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.playground-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.field-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s;
+}
+
+.field-pill:has(input:checked) {
+  background: rgba(0, 210, 255, 0.12);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.playground-run-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  background: linear-gradient(135deg, #00d2ff, #0099cc);
+  color: #000000;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.playground-run-btn:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);
+}
+
+.playground-live-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.metric-pill {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem;
+  text-align: center;
+}
+
+.metric-pill-label {
+  font-size: 0.68rem;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.metric-pill-val {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  font-family: var(--font-mono);
+}
+
+/* ==========================================================================
+   7. Shadcn Command Palette Modal (Cmd+K)
+   ========================================================================== */
+.cmdk-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 12vh;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.cmdk-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cmdk-dialog {
+  width: 100%;
+  max-width: 620px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  transform: translateY(-10px);
+  transition: transform 0.2s ease;
+}
+
+.cmdk-backdrop.open .cmdk-dialog {
+  transform: translateY(0);
+}
+
+.cmdk-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.cmdk-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  color: var(--text-main);
+}
+
+.cmdk-input::placeholder {
+  color: var(--text-muted);
+}
+
+.cmdk-results {
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.cmdk-group-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding: 0.5rem 0.75rem;
+}
+
+.cmdk-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--text-body);
+}
+
+.cmdk-item:hover, .cmdk-item.selected {
+  background: var(--bg-subtle);
+  color: var(--accent-cyan);
+}
+
+.cmdk-item-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.cmdk-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1.25rem;
+  background: var(--bg-subtle);
+  border-top: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
