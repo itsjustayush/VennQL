@@ -1,0 +1,22 @@
+{
+  "name": "VennQL Canonical Reference API",
+  "version": "0.1.0",
+  "protocol": {
+    "version": 1,
+    "magic": "0x56",
+    "wire": "binary",
+    "transport": ["websocket", "webtransport"],
+    "max_payload_size_mb": 16
+  },
+  "procedures": {
+    "1": { "name": "health", "type": "query", "cacheable": true, "description": "Liveness and system health status probe" },
+    "2": { "name": "echo", "type": "mutate", "cacheable": false, "description": "Binary payload echo mutation" },
+    "4": { "name": "books", "type": "query", "cacheable": true, "description": "Bookstore catalog with field bitmask projection" },
+    "5": { "name": "create_book", "type": "mutate", "cacheable": false, "description": "Append book entry to catalog" },
+    "10": { "name": "getUser", "type": "query", "cacheable": true, "description": "User security profile lookup" }
+  },
+  "server": {
+    "host": "127.0.0.1",
+    "port": 8080
+  }
+}

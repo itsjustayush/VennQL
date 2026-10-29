@@ -4,11 +4,14 @@ use crate::opcode::OpCode;
 pub const MAGIC_BYTE: u8 = 0x56;
 pub const PROTOCOL_VERSION: u8 = 0x01;
 pub const HEADER_SIZE: usize = 16;
+pub const MAX_PAYLOAD_SIZE: usize = 16 * 1024 * 1024; // 16 MB maximum payload threshold
 
+pub const FLAG_NONE: u8 = 0x00;
 pub const FLAG_COMPRESSED: u8 = 0x01;
 pub const FLAG_STREAM_END: u8 = 0x02;
 pub const FLAG_CACHEABLE: u8 = 0x04;
 pub const FLAG_AUTH_SET: u8 = 0x08;
+pub const FLAG_RESERVED_MASK: u8 = 0xF0;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Frame<'a> {
@@ -117,7 +120,26 @@ impl<'a> Frame<'a> {
         HEADER_SIZE + self.payload.len()
     }
 
+    /// Strict parse enforcing exact buffer length without unhandled trailing garbage
     pub fn parse(buffer: &'a [u8]) -> Result<Self> {
+        let (frame, remainder) = Self::parse_slice(buffer)?;
+        if !remainder.is_empty() {
+            return Err(VennError::TrailingBytesDetected {
+                expected: HEADER_SIZE + frame.payload.len(),
+                actual: buffer.len(),
+            });
+        }
+        Ok(frame)
+    }
+
+    /// Lenient parse that permits and ignores trailing bytes
+    pub fn parse_lenient(buffer: &'a [u8]) -> Result<Self> {
+        let (frame, _) = Self::parse_slice(buffer)?;
+        Ok(frame)
+    }
+
+    /// Slicing parse returning the parsed Frame and remaining unparsed slice
+    pub fn parse_slice(buffer: &'a [u8]) -> Result<(Self, &'a [u8])> {
         if buffer.len() < HEADER_SIZE {
             return Err(VennError::BufferTooShort {
                 required: HEADER_SIZE,
@@ -163,6 +185,13 @@ impl<'a> Frame<'a> {
             buffer[12], buffer[13], buffer[14], buffer[15],
         ]) as usize;
 
+        if payload_len > MAX_PAYLOAD_SIZE {
+            return Err(VennError::PayloadTooLarge {
+                max: MAX_PAYLOAD_SIZE,
+                actual: payload_len,
+            });
+        }
+
         let required_total = HEADER_SIZE + payload_len;
         if buffer.len() < required_total {
             return Err(VennError::PayloadLengthMismatch {
@@ -172,15 +201,18 @@ impl<'a> Frame<'a> {
         }
 
         let payload = &buffer[HEADER_SIZE..required_total];
+        let remainder = &buffer[required_total..];
 
-        Ok(Frame {
+        let frame = Frame {
             op_code,
             flags,
             transaction_id,
             procedure_id,
             vtable_offset,
             payload,
-        })
+        };
+
+        Ok((frame, remainder))
     }
 
     pub fn encode(&self, target: &mut [u8]) -> Result<usize> {
@@ -304,6 +336,53 @@ mod tests {
             VennError::PayloadLengthMismatch { expected, actual } => {
                 assert_eq!(expected, HEADER_SIZE + 10);
                 assert_eq!(actual, HEADER_SIZE + 8);
+            }
+            other => panic!("Unexpected error: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_trailing_bytes_strict_rejection() {
+        let valid = Frame::query(1, 10, b"exact_payload").to_bytes();
+        let mut with_trailing = valid.clone();
+        with_trailing.extend_from_slice(b"EXTRA_TRAILING");
+
+        // Strict parse rejects trailing bytes
+        let err = Frame::parse(&with_trailing).unwrap_err();
+        match err {
+            VennError::TrailingBytesDetected { expected, actual } => {
+                assert_eq!(expected, valid.len());
+                assert_eq!(actual, with_trailing.len());
+            }
+            other => panic!("Unexpected error: {:?}", other),
+        }
+
+        // Slicing parse returns parsed frame and remaining bytes
+        let (parsed, remainder) = Frame::parse_slice(&with_trailing).expect("Slice parse should succeed");
+        assert_eq!(parsed.payload, b"exact_payload");
+        assert_eq!(remainder, b"EXTRA_TRAILING");
+
+        // Lenient parse succeeds ignoring trailing
+        let lenient = Frame::parse_lenient(&with_trailing).expect("Lenient parse should succeed");
+        assert_eq!(lenient.payload, b"exact_payload");
+    }
+
+    #[test]
+    fn test_payload_too_large() {
+        let mut header = [0u8; 16];
+        header[0] = MAGIC_BYTE;
+        header[1] = PROTOCOL_VERSION;
+        header[2] = OpCode::Query.as_u8();
+        header[3] = 0;
+        // Declare 20 MB (exceeds 16 MB limit)
+        let declared_len = (20 * 1024 * 1024u32).to_be_bytes();
+        header[12..16].copy_from_slice(&declared_len);
+
+        let err = Frame::parse(&header).unwrap_err();
+        match err {
+            VennError::PayloadTooLarge { max, actual } => {
+                assert_eq!(max, MAX_PAYLOAD_SIZE);
+                assert_eq!(actual, 20 * 1024 * 1024);
             }
             other => panic!("Unexpected error: {:?}", other),
         }

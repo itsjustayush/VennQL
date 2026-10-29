@@ -8,8 +8,14 @@ use vennql_core::{
     Frame, OpCode, OwnedFrame, Result, VennError, FLAG_CACHEABLE,
 };
 
+pub const DENSE_ROUTING_TABLE_SIZE: usize = 1024;
+
+/// Hybrid High-Throughput Router:
+/// - Dense Direct Array Indexing (`dense[id]`): Instant 1-instruction array indexing for IDs 0..1023
+/// - Sparse Hash Map (`sparse.get(&id)`): Fallback storage for IDs >= 1024
 pub struct VennRouter {
-    procedures: HashMap<u16, ProcedureKind>,
+    dense: Vec<Option<ProcedureKind>>,
+    sparse: HashMap<u16, ProcedureKind>,
     middlewares: Vec<ArcMiddleware>,
 }
 
@@ -22,7 +28,8 @@ impl Default for VennRouter {
 impl VennRouter {
     pub fn new() -> Self {
         Self {
-            procedures: HashMap::new(),
+            dense: (0..DENSE_ROUTING_TABLE_SIZE).map(|_| None).collect(),
+            sparse: HashMap::new(),
             middlewares: Vec::new(),
         }
     }
@@ -36,7 +43,13 @@ impl VennRouter {
     where
         F: Fn(&RequestContext<'_>) -> Result<Vec<u8>> + Send + Sync + 'static,
     {
-        self.procedures.insert(procedure_id, ProcedureKind::Sync(Arc::new(handler)));
+        let id_idx = procedure_id as usize;
+        let kind = ProcedureKind::Sync(Arc::new(handler));
+        if id_idx < DENSE_ROUTING_TABLE_SIZE {
+            self.dense[id_idx] = Some(kind);
+        } else {
+            self.sparse.insert(procedure_id, kind);
+        }
         self
     }
 
@@ -44,7 +57,13 @@ impl VennRouter {
     where
         F: (for<'a> Fn(&'a RequestContext<'a>) -> BoxFuture<'a, Result<Vec<u8>>>) + Send + Sync + 'static,
     {
-        self.procedures.insert(procedure_id, ProcedureKind::Async(Arc::new(handler)));
+        let id_idx = procedure_id as usize;
+        let kind = ProcedureKind::Async(Arc::new(handler));
+        if id_idx < DENSE_ROUTING_TABLE_SIZE {
+            self.dense[id_idx] = Some(kind);
+        } else {
+            self.sparse.insert(procedure_id, kind);
+        }
         self
     }
 
@@ -56,15 +75,23 @@ impl VennRouter {
             OpCode::Pong => {
                 return Ok(Frame::response(frame.transaction_id, 0, &[]).to_owned());
             }
+            OpCode::Cancel => {
+                // Acknowledge cancellation of transaction
+                return Ok(Frame::response(frame.transaction_id, frame.procedure_id, b"CANCELLED").to_owned());
+            }
             _ => {}
         }
 
-        let procedure = self
-            .procedures
-            .get(&frame.procedure_id)
-            .ok_or(VennError::HandlerNotFound {
-                procedure_id: frame.procedure_id,
-            })?;
+        // Direct numeric table lookup for dense procedure IDs (< 1024), sparse fallback otherwise
+        let procedure = if (frame.procedure_id as usize) < DENSE_ROUTING_TABLE_SIZE {
+            self.dense[frame.procedure_id as usize].as_ref()
+        } else {
+            self.sparse.get(&frame.procedure_id)
+        };
+
+        let procedure = procedure.ok_or(VennError::HandlerNotFound {
+            procedure_id: frame.procedure_id,
+        })?;
 
         let mut ctx = RequestContext::new(frame, client_id);
 

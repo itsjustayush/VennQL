@@ -1,7 +1,7 @@
 import struct
 from dataclasses import dataclass
-from typing import Union
-from .opcode import OpCode, Flags, MAGIC_BYTE, VERSION_1, HEADER_SIZE
+from typing import Union, Tuple
+from .opcode import OpCode, Flags, MAGIC_BYTE, VERSION_1, HEADER_SIZE, MAX_PAYLOAD_SIZE
 
 # Fixed 16-byte binary header: Big-Endian (>):
 # Magic (1B), Version (1B), OpCode (1B), Flags (1B),
@@ -24,6 +24,12 @@ class UnsupportedVersionError(VennError):
 class PayloadLengthMismatchError(VennError):
     pass
 
+class PayloadTooLargeError(VennError):
+    pass
+
+class ReservedBitsSetError(VennError):
+    pass
+
 @dataclass(slots=True)
 class Frame:
     op_code: OpCode
@@ -35,6 +41,11 @@ class Frame:
 
     def encode(self) -> bytes:
         payload_bytes = bytes(self.payload) if not isinstance(self.payload, bytes) else self.payload
+        if len(payload_bytes) > MAX_PAYLOAD_SIZE:
+            raise PayloadTooLargeError(
+                f"Payload size {len(payload_bytes)} bytes exceeds maximum allowed {MAX_PAYLOAD_SIZE} bytes"
+            )
+
         header = struct.pack(
             HEADER_FORMAT,
             MAGIC_BYTE,
@@ -49,7 +60,16 @@ class Frame:
         return header + payload_bytes
 
     @classmethod
-    def parse(cls, data: Union[bytes, bytearray, memoryview]) -> 'Frame':
+    def parse(cls, data: Union[bytes, bytearray, memoryview], exact: bool = True) -> 'Frame':
+        frame, remainder = cls.parse_slice(data)
+        if exact and len(remainder) > 0:
+            raise PayloadLengthMismatchError(
+                f"Trailing bytes detected: frame ended at byte {HEADER_SIZE + len(frame.payload)}, but buffer has {len(data)} bytes"
+            )
+        return frame
+
+    @classmethod
+    def parse_slice(cls, data: Union[bytes, bytearray, memoryview]) -> Tuple['Frame', memoryview]:
         if len(data) < HEADER_SIZE:
             raise BufferTooShortError(f"Expected at least {HEADER_SIZE} bytes, got {len(data)}")
 
@@ -63,22 +83,27 @@ class Frame:
         if version != VERSION_1:
             raise UnsupportedVersionError(f"Unsupported protocol version: {version}")
 
+        if payload_len > MAX_PAYLOAD_SIZE:
+            raise PayloadTooLargeError(
+                f"Declared payload length {payload_len} exceeds maximum allowed {MAX_PAYLOAD_SIZE} bytes"
+            )
+
         total_expected = HEADER_SIZE + payload_len
         if len(data) < total_expected:
             raise PayloadLengthMismatchError(
                 f"Payload truncated: expected {payload_len} bytes, buffer only has {len(data) - HEADER_SIZE}"
             )
 
-        # Zero-copy memoryview slice into payload
-        mv = memoryview(data) if not isinstance(data, memoryview) else data
-        payload_slice = mv[HEADER_SIZE:total_expected]
-
         try:
             op_code = OpCode(op_code_raw)
         except ValueError:
             raise VennError(f"Unknown OpCode: 0x{op_code_raw:02X}")
 
-        return cls(
+        mv = memoryview(data) if not isinstance(data, memoryview) else data
+        payload_slice = mv[HEADER_SIZE:total_expected]
+        remainder = mv[total_expected:]
+
+        frame = cls(
             op_code=op_code,
             flags=flags,
             transaction_id=tx_id,
@@ -86,3 +111,4 @@ class Frame:
             vtable_offset=vtable,
             payload=payload_slice
         )
+        return frame, remainder

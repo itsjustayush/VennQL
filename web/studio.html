@@ -617,7 +617,7 @@
       view.setUint8(0, 0x56); // MAGIC
       view.setUint8(1, 0x01); // VERSION
       view.setUint8(2, opCode);
-      view.setUint8(3, 0x02); // FLAG_CACHEABLE
+      view.setUint8(3, 0x04); // FLAG_CACHEABLE (0x04 per normative spec)
       view.setUint32(4, txId, false);
       view.setUint16(8, procId, false);
       view.setUint16(10, 0, false); // VTABLE OFFSET

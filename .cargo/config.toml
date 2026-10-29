@@ -2,5 +2,4 @@
 linker = "rust-lld"
 
 [build]
-target-dir = "C:/Users/MY PC/AppData/Local/Temp/vennql_target"
 jobs = 2

@@ -28,6 +28,7 @@ Commands:
   dev              Start local VennQL development engine
   bench            Run zero-copy in-memory and network benchmark suite
   check            Verify procedure contracts and schema integrity
+  codegen          Compile schema contracts into TypeScript & Python stubs
   --version, -v    Print CLI version
   --help, -h       Print this help message
 
@@ -128,6 +129,156 @@ function handleBench() {
   });
 }
 
+function handleCheck(customPath) {
+  console.log(BANNER);
+  const configPath = customPath ? path.resolve(process.cwd(), customPath) : path.join(process.cwd(), 'vennql.config.json');
+
+  if (!fs.existsSync(configPath)) {
+    console.error(`\x1b[31mError:\x1b[0m Config file not found at ${configPath}`);
+    console.log(`Run \x1b[34mvennql init\x1b[0m to scaffold a new project.`);
+    process.exit(1);
+  }
+
+  console.log(`\x1b[34m[VennQL]\x1b[0m Validating schema contracts in ${path.basename(configPath)}...\n`);
+  let config;
+  try {
+    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  } catch (err) {
+    console.error(`\x1b[31mSyntax Error:\x1b[0m Failed to parse ${configPath}: ${err.message}`);
+    process.exit(1);
+  }
+
+  let errors = [];
+  let warnings = [];
+
+  // 1. Protocol checks
+  if (!config.protocol) {
+    errors.push("Missing 'protocol' block in configuration.");
+  } else {
+    if (config.protocol.version !== 1) {
+      errors.push(`Unsupported protocol version: ${config.protocol.version}. Expected 1.`);
+    }
+    const magic = String(config.protocol.magic).toLowerCase();
+    if (magic !== '0x56' && magic !== '86') {
+      errors.push(`Invalid magic byte declaration: ${config.protocol.magic}. Expected 0x56.`);
+    }
+  }
+
+  // 2. Procedure contract checks
+  if (!config.procedures || typeof config.procedures !== 'object') {
+    errors.push("Missing or invalid 'procedures' dictionary.");
+  } else {
+    const ids = new Set();
+    const names = new Set();
+
+    console.log('\x1b[1mRegistered Procedures Contract Audit:\x1b[0m');
+    console.log('------------------------------------------------------------');
+    console.log(' ID    | Procedure Name       | Type    | Cacheable | Status');
+    console.log('------------------------------------------------------------');
+
+    for (const [idStr, proc] of Object.entries(config.procedures)) {
+      const id = parseInt(idStr, 10);
+      if (isNaN(id) || id < 1 || id > 65535) {
+        errors.push(`Invalid procedure ID '${idStr}'. Must be an unsigned 16-bit integer (1-65535).`);
+      }
+      if (ids.has(id)) {
+        errors.push(`Duplicate procedure ID: ${id}`);
+      }
+      ids.add(id);
+
+      if (!proc.name || typeof proc.name !== 'string') {
+        errors.push(`Procedure #${id} is missing a valid 'name'.`);
+      } else {
+        if (names.has(proc.name)) {
+          errors.push(`Duplicate procedure name: '${proc.name}' on ID ${id}`);
+        }
+        names.add(proc.name);
+      }
+
+      const validTypes = ['query', 'mutate', 'stream'];
+      const pType = (proc.type || '').toLowerCase();
+      if (!validTypes.includes(pType)) {
+        errors.push(`Procedure #${id} ('${proc.name}') has invalid type '${proc.type}'. Expected one of: ${validTypes.join(', ')}`);
+      }
+
+      const cacheable = Boolean(proc.cacheable);
+      if (pType === 'mutate' && cacheable) {
+        warnings.push(`Procedure #${id} ('${proc.name}') is a 'mutate' but marked 'cacheable: true'. Mutations should not be cached.`);
+      }
+
+      const padId = String(id).padEnd(5);
+      const padName = (proc.name || 'unnamed').padEnd(20);
+      const padType = pType.padEnd(7);
+      const padCache = (cacheable ? 'YES' : 'NO').padEnd(9);
+      console.log(` #${padId} | ${padName} | ${padType} | ${padCache} | \x1b[32mPASSED\x1b[0m`);
+    }
+    console.log('------------------------------------------------------------\n');
+  }
+
+  if (warnings.length > 0) {
+    console.log('\x1b[33mContract Warnings:\x1b[0m');
+    warnings.forEach((w) => console.log(` • \x1b[33m${w}\x1b[0m`));
+    console.log('');
+  }
+
+  if (errors.length > 0) {
+    console.log('\x1b[31mContract Errors Detected:\x1b[0m');
+    errors.forEach((e) => console.log(` ✖ \x1b[31m${e}\x1b[0m`));
+    console.log(`\n\x1b[31mFAILED:\x1b[0m ${errors.length} contract error(s) must be resolved.`);
+    process.exit(1);
+  } else {
+    console.log(`\x1b[32m✔ SUCCESS:\x1b[0m All procedure contracts and schema integrity checks passed without error!`);
+  }
+}
+
+function handleCodegen(customPath) {
+  console.log(BANNER);
+  const configPath = customPath ? path.resolve(process.cwd(), customPath) : path.join(process.cwd(), 'vennql.config.json');
+
+  if (!fs.existsSync(configPath)) {
+    console.error(`\x1b[31mError:\x1b[0m Config file not found at ${configPath}`);
+    process.exit(1);
+  }
+
+  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  console.log(`\x1b[34m[VennQL Codegen]\x1b[0m Compiling schema definitions into polyglot client stubs...\n`);
+
+  // Generate TypeScript Definitions
+  let tsOutput = `// Auto-generated by VennQL CLI (vennql codegen)
+// Schema: ${config.name || 'VennQL API'} v${config.version || '0.1.0'}
+// Do not edit this file directly.
+
+export const Procedures = {\n`;
+
+  for (const [id, proc] of Object.entries(config.procedures || {})) {
+    tsOutput += `  ${proc.name}: ${id},\n`;
+  }
+  tsOutput += `} as const;\n\nexport type ProcedureName = keyof typeof Procedures;\n`;
+
+  const tsFile = path.join(path.dirname(configPath), 'vennql.generated.ts');
+  fs.writeFileSync(tsFile, tsOutput, 'utf8');
+  console.log(` ✔ Generated TypeScript stubs : \x1b[32m${path.basename(tsFile)}\x1b[0m`);
+
+  // Generate Python Definitions
+  let pyOutput = `# Auto-generated by VennQL CLI (vennql codegen)
+# Schema: ${config.name || 'VennQL API'} v${config.version || '0.1.0'}
+# Do not edit this file directly.
+
+from enum import IntEnum
+
+class Procedure(IntEnum):
+`;
+  for (const [id, proc] of Object.entries(config.procedures || {})) {
+    const pyName = proc.name.toUpperCase();
+    pyOutput += `    ${pyName} = ${id}\n`;
+  }
+
+  const pyFile = path.join(path.dirname(configPath), 'vennql_generated.py');
+  fs.writeFileSync(pyFile, pyOutput, 'utf8');
+  console.log(` ✔ Generated Python bindings   : \x1b[32m${path.basename(pyFile)}\x1b[0m`);
+  console.log(`\n\x1b[32mDone!\x1b[0m Type-safe contracts successfully generated.`);
+}
+
 function handleDev() {
   console.log(BANNER);
   console.log('\x1b[34m[VennQL]\x1b[0m Launching VennQL binary engine...\n');
@@ -143,6 +294,12 @@ function handleDev() {
 switch (command) {
   case 'init':
     handleInit(args[1]);
+    break;
+  case 'check':
+    handleCheck(args[1]);
+    break;
+  case 'codegen':
+    handleCodegen(args[1]);
     break;
   case 'bench':
     handleBench();

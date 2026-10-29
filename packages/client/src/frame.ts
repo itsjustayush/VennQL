@@ -1,4 +1,4 @@
-import { OpCode } from './opcode';
+import { OpCode, MAX_PAYLOAD_SIZE } from './opcode';
 
 export const MAGIC_BYTE = 0x56;
 export const PROTOCOL_VERSION = 0x01;
@@ -14,6 +14,12 @@ export interface VennFrame {
 }
 
 export function encodeFrame(frame: VennFrame): Uint8Array {
+  if (frame.payload.byteLength > MAX_PAYLOAD_SIZE) {
+    throw new Error(
+      `Payload size ${frame.payload.byteLength} exceeds maximum allowed ${MAX_PAYLOAD_SIZE} bytes`
+    );
+  }
+
   const totalLength = HEADER_SIZE + frame.payload.byteLength;
   const buffer = new Uint8Array(totalLength);
   const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
@@ -35,7 +41,17 @@ export function encodeFrame(frame: VennFrame): Uint8Array {
   return buffer;
 }
 
-export function parseFrame(buffer: Uint8Array): VennFrame {
+export function parseFrame(buffer: Uint8Array, exact: boolean = true): VennFrame {
+  const { frame, remainder } = parseFrameSlice(buffer);
+  if (exact && remainder.byteLength > 0) {
+    throw new Error(
+      `Trailing bytes detected: frame ended at byte ${HEADER_SIZE + frame.payload.byteLength}, but buffer has ${buffer.byteLength} bytes`
+    );
+  }
+  return frame;
+}
+
+export function parseFrameSlice(buffer: Uint8Array): { frame: VennFrame; remainder: Uint8Array } {
   if (buffer.byteLength < HEADER_SIZE) {
     throw new Error(
       `Buffer too small: expected at least ${HEADER_SIZE} bytes, received ${buffer.byteLength}`
@@ -61,6 +77,12 @@ export function parseFrame(buffer: Uint8Array): VennFrame {
   const vtableOffset = view.getUint16(10, false);
   const payloadLength = view.getUint32(12, false);
 
+  if (payloadLength > MAX_PAYLOAD_SIZE) {
+    throw new Error(
+      `Payload length ${payloadLength} exceeds maximum allowed ${MAX_PAYLOAD_SIZE} bytes`
+    );
+  }
+
   const requiredTotal = HEADER_SIZE + payloadLength;
   if (buffer.byteLength < requiredTotal) {
     throw new Error(
@@ -69,13 +91,17 @@ export function parseFrame(buffer: Uint8Array): VennFrame {
   }
 
   const payload = buffer.subarray(HEADER_SIZE, requiredTotal);
+  const remainder = buffer.subarray(requiredTotal);
 
   return {
-    opCode,
-    flags,
-    transactionId,
-    procedureId,
-    vtableOffset,
-    payload,
+    frame: {
+      opCode,
+      flags,
+      transactionId,
+      procedureId,
+      vtableOffset,
+      payload,
+    },
+    remainder,
   };
 }

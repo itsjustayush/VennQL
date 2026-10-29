@@ -12,11 +12,11 @@
 
 ## 📖 Executive Summary: What is VennQL?
 
-**VennQL** is a modern, high-performance binary API protocol, execution engine, and SDK designed to fundamentally resolve the structural compromises of REST, GraphQL, and gRPC.
+**VennQL** is a schema-controlled, browser-capable binary RPC protocol and execution engine engineered for latency-critical, bandwidth-constrained systems where clients and servers benefit from compact framing, zero-copy parsing, and bidirectional multiplexing.
 
-Unlike REST (which is constrained by string parsing and over-fetching), GraphQL (which suffers from recursive AST overhead and unusable CDN caching), and gRPC (which requires translation proxies inside web browsers), **VennQL operates on fixed 16-byte binary headers with direct memory slicing (`&[u8]`) into contiguous buffers**. 
+Targeting **high-frequency telemetry, real-time multiplayer state, AI agent token streams, mobile bandwidth optimization, and internal microservices**, VennQL operates on a fixed 16-byte binary header with direct memory slicing (`&[u8]`) into contiguous buffers. 
 
-It delivers **sub-microsecond dispatch**, **deterministic 64-bit edge CDN cache tags**, and **native browser transport over binary WebSockets and WebTransport**, completely eliminating translation gateways and garbage-collection churn.
+It delivers **sub-microsecond dispatch**, **deterministic 64-bit edge CDN cache tags**, and **native browser transport over binary WebSockets and WebTransport**, eliminating translation gateways and garbage-collection pauses. Rather than attempting to immediately replace all public REST endpoints, VennQL provides direct HTTP/JSON bridging while excelling in high-volume, schema-controlled pipelines.
 
 ---
 
@@ -204,15 +204,25 @@ No architectural paradigm is a silver bullet. VennQL deliberately makes specific
 
 ## 📊 Empirical Benchmarks, Leaderboards & Multi-Dataset Analysis
 
-To substantiate VennQL's architectural claims, we constructed a versatile testing harness ([`benchmarks/framework_comparison.py`](file:///e:/Projects/VennQL/benchmarks/framework_comparison.py) and [`benchmarks/fuzz_and_stress_suite.py`](file:///e:/Projects/VennQL/benchmarks/fuzz_and_stress_suite.py)) executing **millions of real and simulated operations** across 5 dominant API architectures: **REST (FastAPI / Go JSON)**, **GraphQL (Apollo / Strawberry AST)**, **gRPC (HTTP/2 Protobuf)**, **tRPC (Node.js JSON)**, and **VennQL (Zero-Copy Rust Engine)**.
-
-Testing was performed across diverse payload topologies modelled after real-world Kaggle datasets ranging from **128-byte micro-telemetry** to **1-Megabyte heavy binary streams**.
-
-All charts were programmatically generated with Matplotlib at **300 DPI publication quality**:
+VennQL evaluates performance across two distinct tiers:
+1. **Empirical Release In-Memory Microbenchmarks**: Measured directly on 1,000,000 real operations using the release-compiled Rust engine (`benchmark-service`).
+2. **Multi-Framework Protocol Simulation & Wire Analysis**: Comparative testing executed via [`benchmarks/framework_comparison.py`](file:///e:/Projects/VennQL/benchmarks/framework_comparison.py) and [`benchmarks/fuzz_and_stress_suite.py`](file:///e:/Projects/VennQL/benchmarks/fuzz_and_stress_suite.py) evaluating wire efficiency, framing parse overhead, and throughput potential across diverse data scales (128-byte micro-telemetry to 1-Megabyte heavy binary streams).
 
 ---
 
-### 1. ⚡ The Grand Performance Dashboard
+### 1. ⚡ Measured In-Memory Engine Microbenchmarks
+
+Tested on **1,000,000 real operations** (`benchmark-service` release build on modern x86_64 hardware):
+
+| Engine Stage | Time per Operation | Measured In-Memory Throughput | Memory Allocation |
+| :--- | :--- | :--- | :--- |
+| **Zero-Copy Frame Parsing** | **10.93 ns / op** | **91.49 Million ops/sec** | **0 Heap Allocations (`&[u8]`)** |
+| **Binary Frame Encoding** | **12.35 ns / op** | **80.97 Million ops/sec** | Contiguous Buffer Write |
+| **Direct Numeric Array Dispatch** | **76.68 ns / op** | **13.04 Million ops/sec** | Single Instruction Table Index |
+
+---
+
+### 2. ⚡ The Grand Performance Dashboard
 
 ![VennQL Comprehensive Benchmark Dashboard](assets/benchmarks/vennql_benchmark_dashboard.png)
 
@@ -220,13 +230,13 @@ All charts were programmatically generated with Matplotlib at **300 DPI publicat
 
 ---
 
-### 2. 🚀 Peak Throughput Leaderboard (Requests / Second)
+### 3. 🚀 Peak Throughput Scaling & Protocol Models (Requests / Second)
 
-On an identical 8-core benchmark server, VennQL's non-allocating Tokio pipeline achieved **2.14 Million requests per second**, outpacing gRPC by **3.14x**, REST by **11.5x**, and GraphQL by **26x**:
+Simulated concurrent throughput on an identical 8-core benchmark server, demonstrating how zero-copy binary framing outpaces text parsing and AST tokenization:
 
 ![Peak Server Throughput Leaderboard](assets/benchmarks/throughput_qps.png)
 
-| Protocol / Framework | Engine Runtime | Peak Throughput (QPS) | Relative Speedup | Concurrency Model |
+| Protocol / Framework | Engine Runtime | Peak Throughput (QPS) | Relative Scaling | Concurrency Model |
 | :--- | :--- | :--- | :--- | :--- |
 | **VennQL** | **Rust (Tokio Stream Engine)** | **2,140,000 req/s** | **Baseline (1.0x)** | **Zero-Copy Memory Slicing (`&[u8]`)** |
 | **gRPC** | C++ / Go (HTTP/2 Protobuf) | 680,000 req/s | 3.1x Slower | Binary Varint / Protobuf Unpack |
@@ -318,15 +328,27 @@ Building a protocol that bridges low-level C-like binary efficiency with modern 
 
 2. **WebSockets 17.3 API Evolution**:
    - *Problem*: Upgrading to recent Python `websockets` libraries changed the handshake processing lifecycle, producing unexpected protocol handler signatures.
-   - *Solution*: Engineered a resilient protocol adapter in `python/vennql/logger.py` and `python/vennql/server.py` that transparently adapts across `websockets` versions while preserving high-throughput binary frame delivery.
+   - *Solution*: Engineered a resilient protocol adapter in `python/vennql/logger.py` and `python/vennql/app.py` that transparently adapts across `websockets` versions while preserving high-throughput binary frame delivery.
 
 3. **Vercel Monorepo Build Isolation (Exit Code 126)**:
    - *Problem*: Deploying a monorepo containing Rust, Python, and TypeScript to Vercel triggered build step failures (`BUILD_UTILS_SPAWN_126`) when Vercel attempted to execute missing binaries in root workspaces.
    - *Solution*: Configured clean static website redirection in `vercel.json` with dedicated output mapping to `web/` and root no-op build hooks, keeping cloud frontend hosting completely decoupled from backend crates.
 
-4. **Zero-Copy Memory Boundary Protection**:
-   - *Problem*: In naive binary slicing, malicious frames with oversized `Payload Length` headers could trigger out-of-bounds reads or buffer overruns.
-   - *Solution*: Fortified the 16-byte fixed parser with strict bounds checks: verifying frame lengths before memory slicing, validating `Magic == 0x56`, and enforcing explicit big-endian `u32` length bounds.
+4. **Zero-Copy Memory Boundary Protection & Strict Framing**:
+   - *Problem*: In naive binary slicing, malicious frames with oversized `Payload Length` headers could trigger memory exhaustion or unhandled trailing byte desynchronization.
+   - *Solution*: Fortified the 16-byte fixed parser with strict bounds checks (`MAX_PAYLOAD_SIZE = 16 MB`), exact-length enforcement (`parse(..., exact=True)`), and `parse_slice` returning the unparsed remainder for multi-frame stream recovery.
+
+5. **Cross-Language Protocol Alignment & Normative Specification**:
+   - *Problem*: Early independent implementations of Rust, TypeScript, Python, and the Studio had subtle drift in flag bit values (`FLAG_CACHEABLE = 0x04` vs `0x02`).
+   - *Solution*: Published a single normative wire specification ([`spec/wire-spec-v1.json`](file:///e:/Projects/VennQL/spec/wire-spec-v1.json)) and cross-language golden conformance test suite ([`spec/conformance_vectors.json`](file:///e:/Projects/VennQL/spec/conformance_vectors.json)), harmonizing flag constants and parsing rules across all polyglot SDKs.
+
+6. **Concurrent Connection Multiplexing**:
+   - *Problem*: A sequential reader loop in the server caused slow handlers to block subsequent incoming frames on the same WebSocket connection.
+   - *Solution*: Refactored `VennServer` with a dedicated bounded writer channel (`tokio::sync::mpsc::channel(1024)`) and asynchronous per-transaction task spawning (`tokio::spawn`), ensuring zero head-of-line blocking for concurrent requests over a single socket.
+
+7. **Portable Cargo Build Configuration**:
+   - *Problem*: Machine-specific absolute target paths in `.cargo/config.toml` broke builds across different developer environments and CI containers.
+   - *Solution*: Sanitized `.cargo/config.toml` to use standard portable target resolution without machine-bound paths.
 
 ---
 

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VennQL Wire Protocol Specification v1.0",
+  "protocol": {
+    "name": "VennQL",
+    "version": 1,
+    "version_byte": "0x01",
+    "magic_byte": "0x56",
+    "header_size_bytes": 16,
+    "max_payload_size_bytes": 16777216,
+    "byte_order": "Big-Endian (Network Byte Order)"
+  },
+  "opcodes": {
+    "QUERY": { "value": 1, "hex": "0x01", "description": "Read-only idempotent operation, cacheable via bitmask" },
+    "MUTATE": { "value": 2, "hex": "0x02", "description": "State-modifying operation, never cached" },
+    "STREAM": { "value": 3, "hex": "0x03", "description": "Continuous chunked message stream" },
+    "PING": { "value": 4, "hex": "0x04", "description": "Nanosecond heartbeat liveness probe" },
+    "PONG": { "value": 5, "hex": "0x05", "description": "Immediate heartbeat reply" },
+    "ACK": { "value": 6, "hex": "0x06", "description": "Operation completion / procedure response acknowledgement" },
+    "CANCEL": { "value": 254, "hex": "0xFE", "description": "Abort in-flight transaction ID" },
+    "ERROR": { "value": 255, "hex": "0xFF", "description": "Procedure execution or framing protocol error" }
+  },
+  "flags": {
+    "NONE": { "value": 0, "hex": "0x00", "description": "No active flags" },
+    "COMPRESSED": { "value": 1, "hex": "0x01", "bit": 0, "description": "Payload is compressed (e.g. zstd/lz4)" },
+    "STREAM_END": { "value": 2, "hex": "0x02", "bit": 1, "description": "Final chunk in a streaming transaction" },
+    "CACHEABLE": { "value": 4, "hex": "0x04", "bit": 2, "description": "Response may be cached by edge CDN / client cache" },
+    "AUTH_SET": { "value": 8, "hex": "0x08", "bit": 3, "description": "Authentication token context attached in payload prefix" },
+    "RESERVED_MASK": { "value": 240, "hex": "0xF0", "bits": "4-7", "description": "Reserved for future protocol expansions; must be 0 in v1.0" }
+  },
+  "header_fields": [
+    { "name": "magic", "offset": 0, "size": 1, "type": "u8", "expected": "0x56" },
+    { "name": "version", "offset": 1, "size": 1, "type": "u8", "expected": "0x01" },
+    { "name": "op_code", "offset": 2, "size": 1, "type": "u8", "valid_range": "0x01-0x06, 0xFE, 0xFF" },
+    { "name": "flags", "offset": 3, "size": 1, "type": "u8", "bitfield": true },
+    { "name": "transaction_id", "offset": 4, "size": 4, "type": "u32_be", "description": "Asynchronous multiplexing correlation ID" },
+    { "name": "procedure_id", "offset": 8, "size": 2, "type": "u16_be", "description": "Numeric procedure routing key" },
+    { "name": "vtable_offset", "offset": 10, "size": 2, "type": "u16_be", "description": "Schema offset for direct field projection" },
+    { "name": "payload_length", "offset": 12, "size": 4, "type": "u32_be", "description": "Exact length of following payload bytes" }
+  ]
+}

@@ -10,8 +10,12 @@ export enum OpCode {
 }
 
 export const Flags = {
+  NONE: 0x00,
   COMPRESSED: 0x01,
   STREAM_END: 0x02,
   CACHEABLE: 0x04,
   AUTH_SET: 0x08,
+  RESERVED_MASK: 0xf0,
 } as const;
+
+export const MAX_PAYLOAD_SIZE = 16 * 1024 * 1024; // 16 MB limit

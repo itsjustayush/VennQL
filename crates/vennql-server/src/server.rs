@@ -78,7 +78,19 @@ impl VennServer {
         println!("[VennQL] Client #{} connected from {}", client_id, peer_addr);
 
         let (mut write, mut read) = ws_stream.split();
+        let (tx, mut rx) = tokio::sync::mpsc::channel::<Message>(1024);
 
+        // Dedicated writer task consuming outbound frames from the channel
+        let writer_handle = tokio::spawn(async move {
+            while let Some(msg) = rx.recv().await {
+                if let Err(e) = write.send(msg).await {
+                    eprintln!("[VennQL] WebSocket send error: {}", e);
+                    break;
+                }
+            }
+        });
+
+        // Non-blocking reader loop: spawns asynchronous handler tasks per transaction
         while let Some(msg) = read.next().await {
             let msg = msg?;
 
@@ -86,22 +98,36 @@ impl VennServer {
                 Message::Binary(bytes) => {
                     match Frame::parse(&bytes) {
                         Ok(frame) => {
-                            match router.dispatch(&frame, client_id).await {
-                                Ok(response_frame) => {
-                                    write.send(Message::Binary(response_frame.to_bytes())).await?;
-                                }
-                                Err(err) => {
-                                    let err_frame = OwnedFrame {
-                                        op_code: vennql_core::OpCode::Error,
-                                        flags: 0,
-                                        transaction_id: frame.transaction_id,
-                                        procedure_id: frame.procedure_id,
-                                        vtable_offset: 0,
-                                        payload: err.to_string().into_bytes(),
-                                    };
-                                    write.send(Message::Binary(err_frame.to_bytes())).await?;
-                                }
+                            let owned_frame = frame.to_owned();
+                            let router = Arc::clone(&router);
+                            let tx = tx.clone();
+
+                            // Fast-path for Ping/Pong without spawning extra task
+                            if owned_frame.op_code == vennql_core::OpCode::Ping {
+                                let pong = Frame::pong(owned_frame.transaction_id);
+                                let _ = tx.send(Message::Binary(pong.to_bytes())).await;
+                                continue;
                             }
+
+                            // Concurrent dispatch task: does NOT block reader loop!
+                            tokio::spawn(async move {
+                                match router.dispatch(&owned_frame.as_frame(), client_id).await {
+                                    Ok(response_frame) => {
+                                        let _ = tx.send(Message::Binary(response_frame.to_bytes())).await;
+                                    }
+                                    Err(err) => {
+                                        let err_frame = OwnedFrame {
+                                            op_code: vennql_core::OpCode::Error,
+                                            flags: 0,
+                                            transaction_id: owned_frame.transaction_id,
+                                            procedure_id: owned_frame.procedure_id,
+                                            vtable_offset: 0,
+                                            payload: err.to_string().into_bytes(),
+                                        };
+                                        let _ = tx.send(Message::Binary(err_frame.to_bytes())).await;
+                                    }
+                                }
+                            });
                         }
                         Err(parse_err) => {
                             let err_frame = OwnedFrame {
@@ -112,12 +138,12 @@ impl VennServer {
                                 vtable_offset: 0,
                                 payload: format!("Frame parse error: {}", parse_err).into_bytes(),
                             };
-                            write.send(Message::Binary(err_frame.to_bytes())).await?;
+                            let _ = tx.send(Message::Binary(err_frame.to_bytes())).await;
                         }
                     }
                 }
                 Message::Ping(payload) => {
-                    write.send(Message::Pong(payload)).await?;
+                    let _ = tx.send(Message::Pong(payload)).await;
                 }
                 Message::Close(_) => {
                     println!("[VennQL] Client #{} disconnected", client_id);
@@ -126,6 +152,10 @@ impl VennServer {
                 _ => {}
             }
         }
+
+        // Drop sender and await writer shutdown
+        drop(tx);
+        let _ = writer_handle.await;
 
         Ok(())
     }

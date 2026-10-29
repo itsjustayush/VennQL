@@ -11,6 +11,7 @@ export type ProcedureTarget = number | string;
 
 export interface QueryOptions {
   select?: string[];
+  bitmask?: number;
   [key: string]: any;
 }
 
@@ -134,7 +135,8 @@ export class VennClient {
   public async call(
     opCode: OpCode,
     procedureTarget: ProcedureTarget,
-    payloadData?: Uint8Array | object | string
+    payloadData?: Uint8Array | object | string,
+    vtableOffset: number = 0
   ): Promise<Uint8Array> {
     if (!this.ws || this.ws.readyState !== 1) {
       throw new Error('VennQL client is not connected to a server.');
@@ -163,7 +165,7 @@ export class VennClient {
       flags,
       transactionId: txId,
       procedureId,
-      vtableOffset: 0,
+      vtableOffset,
       payload,
     });
 
@@ -182,7 +184,13 @@ export class VennClient {
     target: ProcedureTarget,
     payload?: Uint8Array | object | string | QueryOptions
   ): Promise<T> {
-    const raw = await this.call(OpCode.Query, target, payload);
+    let vtableOffset = 0;
+    if (payload && typeof payload === 'object' && !(payload instanceof Uint8Array)) {
+      if ('bitmask' in payload && typeof (payload as any).bitmask === 'number') {
+        vtableOffset = (payload as any).bitmask;
+      }
+    }
+    const raw = await this.call(OpCode.Query, target, payload, vtableOffset);
     return this.parseResponsePayload<T>(raw);
   }
 

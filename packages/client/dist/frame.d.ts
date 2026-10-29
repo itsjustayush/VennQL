@@ -11,5 +11,9 @@ export interface VennFrame {
     payload: Uint8Array;
 }
 export declare function encodeFrame(frame: VennFrame): Uint8Array;
-export declare function parseFrame(buffer: Uint8Array): VennFrame;
+export declare function parseFrame(buffer: Uint8Array, exact?: boolean): VennFrame;
+export declare function parseFrameSlice(buffer: Uint8Array): {
+    frame: VennFrame;
+    remainder: Uint8Array;
+};
 //# sourceMappingURL=frame.d.ts.map

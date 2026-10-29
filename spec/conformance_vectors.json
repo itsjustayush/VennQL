@@ -1,0 +1,84 @@
+{
+  "description": "VennQL v1.0 Cross-Language Golden Conformance Test Vectors",
+  "valid_vectors": [
+    {
+      "name": "basic_ping",
+      "hex": "560104000000002a0000000000000000",
+      "expected": {
+        "op_code": 4,
+        "flags": 0,
+        "transaction_id": 42,
+        "procedure_id": 0,
+        "vtable_offset": 0,
+        "payload_len": 0,
+        "payload_utf8": ""
+      }
+    },
+    {
+      "name": "query_books_with_cacheable_flag",
+      "hex": "5601010400000539000400000000000d7b2273656c656374223a5b5d7d",
+      "expected": {
+        "op_code": 1,
+        "flags": 4,
+        "transaction_id": 1337,
+        "procedure_id": 4,
+        "vtable_offset": 0,
+        "payload_len": 13,
+        "payload_utf8": "{\"select\":[]}"
+      }
+    },
+    {
+      "name": "ack_response_multi_flags",
+      "hex": "5601060600000064006500000000000568656c6c6f",
+      "expected": {
+        "op_code": 6,
+        "flags": 6,
+        "transaction_id": 100,
+        "procedure_id": 101,
+        "vtable_offset": 0,
+        "payload_len": 5,
+        "payload_utf8": "hello"
+      }
+    },
+    {
+      "name": "stream_chunk_and_cancel",
+      "hex": "5601fe00000000640000000000000000",
+      "expected": {
+        "op_code": 254,
+        "flags": 0,
+        "transaction_id": 100,
+        "procedure_id": 0,
+        "vtable_offset": 0,
+        "payload_len": 0,
+        "payload_utf8": ""
+      }
+    }
+  ],
+  "invalid_vectors": [
+    {
+      "name": "corrupt_magic_0x99",
+      "hex": "9901010000000001000100000000000474657374",
+      "expected_error": "InvalidMagicByte"
+    },
+    {
+      "name": "unsupported_version_0x02",
+      "hex": "5602010000000001000100000000000474657374",
+      "expected_error": "UnsupportedVersion"
+    },
+    {
+      "name": "truncated_header_less_than_16_bytes",
+      "hex": "5601010000000001",
+      "expected_error": "BufferTooShort"
+    },
+    {
+      "name": "payload_truncated_declared_4_actual_2",
+      "hex": "560101000000000100010000000000047465",
+      "expected_error": "PayloadLengthMismatch"
+    },
+    {
+      "name": "oversized_payload_len_overflow",
+      "hex": "5601010000000001000100000200000074657374",
+      "expected_error": "PayloadTooLarge"
+    }
+  ]
+}

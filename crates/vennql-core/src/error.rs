@@ -17,6 +17,12 @@ pub enum VennError {
     #[error("Payload length mismatch: frame header specifies {expected} bytes, but buffer contains {actual}")]
     PayloadLengthMismatch { expected: usize, actual: usize },
 
+    #[error("Payload too large: length {actual} exceeds maximum permitted {max} bytes")]
+    PayloadTooLarge { max: usize, actual: usize },
+
+    #[error("Trailing bytes detected: frame ended at byte {expected}, but buffer contains {actual} bytes")]
+    TrailingBytesDetected { expected: usize, actual: usize },
+
     #[error("Target output buffer too small: requires {required} bytes, available {available}")]
     TargetBufferTooSmall { required: usize, available: usize },
 
